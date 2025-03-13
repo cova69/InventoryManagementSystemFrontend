@@ -1,22 +1,60 @@
-// src/components/products/ProductList.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Paper, Typography, Button, Table, TableBody, TableCell, 
-  TableContainer, TableHead, TableRow, TextField, Box,
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  FormControl, InputLabel, Select, MenuItem, InputAdornment,
-  IconButton, Chip, Tooltip, CircularProgress, Grid,
-  Snackbar, Alert, TablePagination
+  Box, 
+  Typography, 
+  Button, 
+  Paper, 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableContainer, 
+  TableHead, 
+  TableRow,
+  Grid,
+  TextField,
+  InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Chip,
+  Avatar,
+  Tooltip,
+  CircularProgress,
+  Snackbar,
+  Alert,
+  Divider
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import SearchIcon from '@mui/icons-material/Search';
-import FilterListIcon from '@mui/icons-material/FilterList';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Search as SearchIcon,
+  Category as CategoryIcon,
+  LocalShipping as SupplierIcon,
+  ShoppingCart as ProductIcon,
+  Refresh as RefreshIcon,
+  AttachMoney as MoneyIcon,
+  FilterList as FilterListIcon
+} from '@mui/icons-material';
 import axios from 'axios';
-import ApiService from '../../services/ApiService';
 
-const ProductList = () => {
+// Get auth header function
+function authHeader() {
+  const user = JSON.parse(localStorage.getItem('user'));
+  if (user && user.token) {
+    return { 'Authorization': 'Bearer ' + user.token };
+  } else {
+    return {};
+  }
+}
+
+const ModernProductList = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -47,19 +85,26 @@ const ProductList = () => {
     categoryId: '',
     supplierId: ''
   });
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (products.length > 0) {
+      applyFilters();
+    }
+  }, [searchTerm, filters, products]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const [productsRes, categoriesRes, suppliersRes] = await Promise.all([
-        axios.get('http://localhost:8080/api/products'),
-        axios.get('http://localhost:8080/api/categories'),
-        axios.get('http://localhost:8080/api/suppliers')
+        axios.get('http://localhost:8080/api/products', { headers: authHeader() }),
+        axios.get('http://localhost:8080/api/categories', { headers: authHeader() }),
+        axios.get('http://localhost:8080/api/suppliers', { headers: authHeader() })
       ]);
       
-      // Make sure we're setting arrays with safety checks
       setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
       setFilteredProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
       setCategories(Array.isArray(categoriesRes.data) ? categoriesRes.data : []);
@@ -76,7 +121,7 @@ const ProductList = () => {
     }
   };
 
-  const applyFilters = useCallback(() => {
+  const applyFilters = () => {
     let result = [...products];
     
     // Apply search term filter
@@ -91,29 +136,16 @@ const ProductList = () => {
     
     // Apply category filter
     if (filters.categoryId) {
-      result = result.filter(product => 
-        product.categoryId === filters.categoryId
-      );
+      result = result.filter(product => product.categoryId === filters.categoryId);
     }
     
     // Apply supplier filter
     if (filters.supplierId) {
-      result = result.filter(product => 
-        product.supplierId === filters.supplierId
-      );
+      result = result.filter(product => product.supplierId === filters.supplierId);
     }
     
     setFilteredProducts(result);
-    setPage(0); // Reset to first page when filtering
-  }, [products, searchTerm, filters, setPage]);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [searchTerm, filters, products, applyFilters]);
+  };
 
   const handleOpenDialog = (product = null) => {
     if (product) {
@@ -212,36 +244,6 @@ const ProductList = () => {
         return;
       }
       
-      // Validate price
-      if (!currentProduct.price) {
-        setSnackbar({
-          open: true,
-          message: 'Price is required',
-          severity: 'error'
-        });
-        return;
-      }
-      
-      // Validate category
-      if (!currentProduct.categoryId) {
-        setSnackbar({
-          open: true,
-          message: 'Category is required',
-          severity: 'error'
-        });
-        return;
-      }
-      
-      // Validate supplier
-      if (!currentProduct.supplierId) {
-        setSnackbar({
-          open: true,
-          message: 'Supplier is required',
-          severity: 'error'
-        });
-        return;
-      }
-  
       // Convert price to number
       const productToSave = {
         ...currentProduct,
@@ -250,7 +252,16 @@ const ProductList = () => {
   
       let response;
       if (isEditing) {
-        response = await ApiService.updateProduct(currentProduct.id, productToSave);
+        response = await axios.put(
+          `http://localhost:8080/api/products/${currentProduct.id}`, 
+          productToSave,
+          {
+            headers: {
+              ...authHeader(),
+              'Content-Type': 'application/json'
+            }
+          }
+        );
         
         // Update products array with edited product
         setProducts(products.map(p => p.id === currentProduct.id ? response.data : p));
@@ -261,7 +272,16 @@ const ProductList = () => {
           severity: 'success'
         });
       } else {
-        response = await ApiService.createProduct(productToSave);
+        response = await axios.post(
+          'http://localhost:8080/api/products', 
+          productToSave,
+          {
+            headers: {
+              ...authHeader(),
+              'Content-Type': 'application/json'
+            }
+          }
+        );
         
         // Add new product to products array
         setProducts([...products, response.data]);
@@ -283,6 +303,7 @@ const ProductList = () => {
       });
     }
   };
+
   const openDeleteConfirm = (product) => {
     setProductToDelete(product);
     setDeleteConfirmOpen(true);
@@ -292,7 +313,9 @@ const ProductList = () => {
     if (!productToDelete) return;
     
     try {
-      await ApiService.deleteProduct(productToDelete.id);
+      await axios.delete(`http://localhost:8080/api/products/${productToDelete.id}`, {
+        headers: authHeader()
+      });
       
       // Remove deleted product from products array
       setProducts(products.filter(p => p.id !== productToDelete.id));
@@ -322,15 +345,6 @@ const ProductList = () => {
     });
   };
 
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
   const clearFilters = () => {
     setSearchTerm('');
     setFilters({
@@ -339,24 +353,65 @@ const ProductList = () => {
     });
   };
 
+  if (loading && products.length === 0) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+        <CircularProgress size={60} />
+      </Box>
+    );
+  }
+
   return (
-    <Box sx={{ p: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1">
+    <Box sx={{ p: 3, backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Typography 
+          variant="h4" 
+          sx={{ 
+            fontWeight: 600,
+            backgroundImage: 'linear-gradient(45deg, #3a7bd5, #00d2ff)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            fontFamily: "'Poppins', sans-serif"
+          }}
+        >
           Products
         </Typography>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          Add Product
-        </Button>
+        <Box>
+          <Button
+            variant="contained"
+            startIcon={<RefreshIcon />}
+            onClick={fetchData}
+            sx={{ 
+              mr: 2,
+              backgroundColor: '#6c757d',
+              '&:hover': { backgroundColor: '#5a6268' },
+              fontWeight: 500,
+              textTransform: 'none',
+              borderRadius: '8px'
+            }}
+          >
+            Refresh
+          </Button>
+          <Button 
+            variant="contained" 
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+            sx={{ 
+              backgroundColor: '#28a745',
+              '&:hover': { backgroundColor: '#218838' },
+              fontWeight: 500,
+              textTransform: 'none',
+              borderRadius: '8px'
+            }}
+          >
+            Add Product
+          </Button>
+        </Box>
       </Box>
 
       {/* Search and Filters */}
-      <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
+      <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: '12px' }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} md={4}>
             <TextField
@@ -365,10 +420,18 @@ const ProductList = () => {
               placeholder="Search products by name, SKU or description"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '8px',
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#3a7bd5',
+                  },
+                },
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon />
+                    <SearchIcon sx={{ color: '#3a7bd5' }} />
                   </InputAdornment>
                 ),
               }}
@@ -383,6 +446,12 @@ const ProductList = () => {
                 value={filters.categoryId}
                 onChange={handleFilterChange}
                 label="Filter by Category"
+                sx={{
+                  borderRadius: '8px',
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#ddd',
+                  },
+                }}
               >
                 <MenuItem value="">
                   <em>All Categories</em>
@@ -404,6 +473,12 @@ const ProductList = () => {
                 value={filters.supplierId}
                 onChange={handleFilterChange}
                 label="Filter by Supplier"
+                sx={{
+                  borderRadius: '8px',
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#ddd',
+                  },
+                }}
               >
                 <MenuItem value="">
                   <em>All Suppliers</em>
@@ -422,6 +497,15 @@ const ProductList = () => {
               startIcon={<FilterListIcon />}
               onClick={clearFilters}
               disabled={!searchTerm && !filters.categoryId && !filters.supplierId}
+              sx={{ 
+                borderRadius: '8px',
+                borderColor: '#3a7bd5',
+                color: '#3a7bd5',
+                '&:hover': {
+                  borderColor: '#2a6ac5',
+                  backgroundColor: 'rgba(58, 123, 213, 0.04)'
+                }
+              }}
             >
               Clear Filters
             </Button>
@@ -430,43 +514,63 @@ const ProductList = () => {
       </Paper>
 
       {/* Products Table */}
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 5 }}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <>
-          <TableContainer component={Paper}>
-            <Table sx={{ minWidth: 650 }} aria-label="products table">
-              <TableHead>
-                <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>SKU</TableCell>
-                  <TableCell>Category</TableCell>
-                  <TableCell>Supplier</TableCell>
-                  <TableCell align="right">Price</TableCell>
-                  <TableCell align="center">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredProducts.length > 0 ? (
-                  (rowsPerPage > 0
-                    ? filteredProducts.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                    : filteredProducts
-                  ).map((product) => (
-                    <TableRow 
-                      key={product.id}
-                      hover
-                      sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                    >
-                      <TableCell>{product.id}</TableCell>
-                      <TableCell component="th" scope="row">
-                        <Typography fontWeight="medium">{product.name}</Typography>
+      <TableContainer 
+        component={Paper} 
+        elevation={2} 
+        sx={{ 
+          borderRadius: '12px',
+          overflow: 'hidden',
+          mb: 3
+        }}
+      >
+        <Table>
+          <TableHead sx={{ backgroundColor: 'rgba(58, 123, 213, 0.1)' }}>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 600, color: '#3a7bd5' }}>Product</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: '#3a7bd5' }}>SKU</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: '#3a7bd5' }}>Category</TableCell>
+              <TableCell sx={{ fontWeight: 600, color: '#3a7bd5' }}>Supplier</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 600, color: '#3a7bd5' }}>Price</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 600, color: '#3a7bd5' }}>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => (
+                <TableRow 
+                  key={product.id}
+                  hover
+                  sx={{
+                    '&:hover': {
+                      backgroundColor: 'rgba(58, 123, 213, 0.03)'
+                    }
+                  }}
+                >
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Box
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: '8px',
+                          backgroundColor: 'rgba(58, 123, 213, 0.1)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mr: 2
+                        }}
+                      >
+                        <ProductIcon sx={{ color: '#3a7bd5' }} />
+                      </Box>
+                      <Box>
+                        <Typography variant="body1" fontWeight={500}>{product.name}</Typography>
                         {product.description && (
-                          <Typography variant="body2" color="text.secondary" 
+                          <Typography 
+                            variant="caption" 
+                            color="text.secondary"
                             sx={{ 
-                              maxWidth: 300,
+                              display: 'block',
+                              maxWidth: '300px',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap'
@@ -475,65 +579,116 @@ const ProductList = () => {
                             {product.description}
                           </Typography>
                         )}
-                      </TableCell>
-                      <TableCell>{product.sku || '-'}</TableCell>
-                      <TableCell>
-                        {product.categoryName ? (
-                          <Chip 
-                            label={product.categoryName} 
-                            size="small" 
-                            variant="outlined"
-                          />
-                        ) : '-'}
-                      </TableCell>
-                      <TableCell>
-                        {product.supplierName || '-'}
-                      </TableCell>
-                      <TableCell align="right">
-                        {product.price ? `$${parseFloat(product.price).toFixed(2)}` : '-'}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Tooltip title="Edit">
-                          <IconButton size="small" onClick={() => handleOpenDialog(product)}>
-                            <EditIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete">
-                          <IconButton size="small" color="error" onClick={() => openDeleteConfirm(product)}>
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
-                      <Typography variant="subtitle1">
-                        No products found.
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {searchTerm || filters.categoryId || filters.supplierId 
-                          ? 'Try adjusting your search or filters.' 
-                          : 'Add your first product using the button above.'}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25]}
-            component="div"
-            count={filteredProducts.length}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-          />
-        </>
-      )}
+                      </Box>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={product.sku || '-'} 
+                      size="small"
+                      variant="outlined"
+                      sx={{ 
+                        borderColor: '#aaa',
+                        fontFamily: 'monospace'
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {product.categoryName ? (
+                      <Chip 
+                        icon={<CategoryIcon fontSize="small" />}
+                        label={product.categoryName} 
+                        size="small"
+                        sx={{ 
+                          backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                          color: '#2ecc71',
+                          fontWeight: 500,
+                          '& .MuiChip-icon': { color: '#2ecc71' }
+                        }}
+                      />
+                    ) : '-'}
+                  </TableCell>
+                  <TableCell>
+                    {product.supplierName ? (
+                      <Chip 
+                        icon={<SupplierIcon fontSize="small" />}
+                        label={product.supplierName} 
+                        size="small"
+                        sx={{ 
+                          backgroundColor: 'rgba(155, 89, 182, 0.1)',
+                          color: '#9b59b6',
+                          fontWeight: 500,
+                          '& .MuiChip-icon': { color: '#9b59b6' }
+                        }}
+                      />
+                    ) : '-'}
+                  </TableCell>
+                  <TableCell align="right">
+                    <Chip 
+                      icon={<MoneyIcon fontSize="small" />}
+                      label={product.price ? `$${parseFloat(product.price).toFixed(2)}` : '-'} 
+                      size="small"
+                      sx={{ 
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        color: '#3498db',
+                        fontWeight: 500,
+                        '& .MuiChip-icon': { color: '#3498db' }
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell align="center">
+                    <Box>
+                      <Tooltip title="Edit">
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleOpenDialog(product)}
+                          sx={{ 
+                            mx: 0.5,
+                            color: '#3a7bd5',
+                            '&:hover': {
+                              backgroundColor: 'rgba(58, 123, 213, 0.1)'
+                            }
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <IconButton 
+                          size="small" 
+                          color="error"
+                          onClick={() => openDeleteConfirm(product)}
+                          sx={{ 
+                            mx: 0.5,
+                            '&:hover': {
+                              backgroundColor: 'rgba(231, 76, 60, 0.1)'
+                            }
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                  <Typography variant="h6" color="text.secondary">
+                    No products found
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    {searchTerm || filters.categoryId || filters.supplierId 
+                      ? 'Try adjusting your search or filters' 
+                      : 'Add your first product using the button above'}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
       {/* Add/Edit Product Dialog */}
       <Dialog 
@@ -541,12 +696,21 @@ const ProductList = () => {
         onClose={handleCloseDialog}
         maxWidth="md"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '12px',
+            padding: 2
+          }
+        }}
       >
-        <DialogTitle>
-          {isEditing ? 'Edit Product' : 'Add New Product'}
+        <DialogTitle sx={{ pb: 1 }}>
+          <Typography variant="h5" fontWeight={600} color="#3a7bd5">
+            {isEditing ? 'Edit Product' : 'Add New Product'}
+          </Typography>
         </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+        <Divider />
+        <DialogContent sx={{ pt: 3 }}>
+          <Grid container spacing={3}>
             <Grid item xs={12} sm={6}>
               <TextField
                 name="name"
@@ -556,8 +720,14 @@ const ProductList = () => {
                 onChange={handleInputChange}
                 required
                 autoFocus
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px',
+                  }
+                }}
               />
             </Grid>
+            
             <Grid item xs={12} sm={6}>
               <TextField
                 name="sku"
@@ -566,8 +736,15 @@ const ProductList = () => {
                 value={currentProduct.sku || ''}
                 onChange={handleInputChange}
                 required
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px',
+                  }
+                }}
+                helperText="Unique product identifier"
               />
             </Grid>
+            
             <Grid item xs={12}>
               <TextField
                 name="description"
@@ -577,8 +754,14 @@ const ProductList = () => {
                 onChange={handleInputChange}
                 multiline
                 rows={3}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px',
+                  }
+                }}
               />
             </Grid>
+            
             <Grid item xs={12} sm={4}>
               <TextField
                 name="price"
@@ -587,11 +770,17 @@ const ProductList = () => {
                 value={currentProduct.price || ''}
                 onChange={handleInputChange}
                 required
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px',
+                  }
+                }}
                 InputProps={{
                   startAdornment: <InputAdornment position="start">$</InputAdornment>,
                 }}
               />
             </Grid>
+            
             <Grid item xs={12} sm={4}>
               <FormControl fullWidth required>
                 <InputLabel id="category-select-label">Category</InputLabel>
@@ -601,9 +790,12 @@ const ProductList = () => {
                   value={currentProduct.categoryId || ''}
                   onChange={handleSelectChange}
                   label="Category"
+                  sx={{ 
+                    borderRadius: '8px',
+                  }}
                 >
                   <MenuItem value="">
-                    <em>None</em>
+                    <em>Select Category</em>
                   </MenuItem>
                   {Array.isArray(categories) && categories.map(category => (
                     <MenuItem key={category.id} value={category.id}>
@@ -613,6 +805,7 @@ const ProductList = () => {
                 </Select>
               </FormControl>
             </Grid>
+            
             <Grid item xs={12} sm={4}>
               <FormControl fullWidth required>
                 <InputLabel id="supplier-select-label">Supplier</InputLabel>
@@ -622,9 +815,12 @@ const ProductList = () => {
                   value={currentProduct.supplierId || ''}
                   onChange={handleSelectChange}
                   label="Supplier"
+                  sx={{ 
+                    borderRadius: '8px',
+                  }}
                 >
                   <MenuItem value="">
-                    <em>None</em>
+                    <em>Select Supplier</em>
                   </MenuItem>
                   {Array.isArray(suppliers) && suppliers.map(supplier => (
                     <MenuItem key={supplier.id} value={supplier.id}>
@@ -637,10 +833,27 @@ const ProductList = () => {
           </Grid>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={handleCloseDialog} color="inherit">
+          <Button 
+            onClick={handleCloseDialog} 
+            sx={{ 
+              color: '#6c757d',
+              fontWeight: 500,
+              borderRadius: '8px'
+            }}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSaveProduct} variant="contained" color="primary">
+          <Button 
+            onClick={handleSaveProduct} 
+            variant="contained"
+            sx={{ 
+              backgroundColor: '#3a7bd5',
+              '&:hover': { backgroundColor: '#2a6ac5' },
+              fontWeight: 500,
+              textTransform: 'none',
+              borderRadius: '8px'
+            }}
+          >
             {isEditing ? 'Update' : 'Add'} Product
           </Button>
         </DialogActions>
@@ -650,18 +863,45 @@ const ProductList = () => {
       <Dialog
         open={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: '12px',
+            padding: 2
+          }
+        }}
       >
-        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogTitle>
+          <Typography variant="h6" fontWeight={600}>
+            Confirm Delete
+          </Typography>
+        </DialogTitle>
+        <Divider />
         <DialogContent>
           <Typography>
             Are you sure you want to delete the product "{productToDelete?.name}"? This action cannot be undone.
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteConfirmOpen(false)} color="inherit">
+          <Button 
+            onClick={() => setDeleteConfirmOpen(false)} 
+            sx={{ 
+              color: '#6c757d',
+              fontWeight: 500,
+              borderRadius: '8px'
+            }}
+          >
             Cancel
           </Button>
-          <Button onClick={handleDeleteProduct} variant="contained" color="error">
+          <Button 
+            onClick={handleDeleteProduct} 
+            variant="contained" 
+            color="error"
+            sx={{ 
+              fontWeight: 500,
+              textTransform: 'none',
+              borderRadius: '8px'
+            }}
+          >
             Delete
           </Button>
         </DialogActions>
@@ -678,7 +918,11 @@ const ProductList = () => {
           onClose={handleCloseSnackbar} 
           severity={snackbar.severity} 
           variant="filled"
-          sx={{ width: '100%' }}
+          sx={{ 
+            width: '100%',
+            boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+            borderRadius: '8px'
+          }}
         >
           {snackbar.message}
         </Alert>
@@ -687,4 +931,4 @@ const ProductList = () => {
   );
 };
 
-export default ProductList;
+export default ModernProductList;

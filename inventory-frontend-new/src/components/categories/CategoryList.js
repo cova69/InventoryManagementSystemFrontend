@@ -1,20 +1,50 @@
-// src/components/categories/CategoryList.js
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Paper, Typography, Button, Table, TableBody, TableCell, 
-  TableContainer, TableHead, TableRow, TextField, Box,
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  IconButton, Tooltip, CircularProgress, Grid,
-  Snackbar, Alert, TablePagination, InputAdornment
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  Button,
+  Paper,
+  Grid,
+  TextField,
+  InputAdornment,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Divider,
+  CircularProgress,
+  Snackbar,
+  Alert,
+  Tooltip,
+  Card,
+  CardContent,
+  CardActionArea,
+  Chip,
+  Avatar
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import SearchIcon from '@mui/icons-material/Search';
-import FilterListIcon from '@mui/icons-material/FilterList';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Search as SearchIcon,
+  Category as CategoryIcon,
+  ShoppingBag as ShoppingBagIcon,
+  Refresh as RefreshIcon
+} from '@mui/icons-material';
 import axios from 'axios';
 
-const CategoryList = () => {
+// Get auth header function
+function authHeader() {
+  const user = JSON.parse(localStorage.getItem('user'));
+  if (user && user.token) {
+    return { 'Authorization': 'Bearer ' + user.token };
+  } else {
+    return {};
+  }
+}
+
+const ModernCategoryList = () => {
   const [categories, setCategories] = useState([]);
   const [filteredCategories, setFilteredCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,18 +64,23 @@ const CategoryList = () => {
     severity: 'success'
   });
   const [searchTerm, setSearchTerm] = useState('');
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    if (categories.length > 0) {
+      applyFilters();
+    }
+  }, [searchTerm, categories]);
 
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:8080/api/categories');
-      
-      // Add these console logs to debug
-      console.log('Categories API response:', response);
-      console.log('Categories data type:', typeof response.data);
-      console.log('Is data an array?', Array.isArray(response.data));
+      const response = await axios.get('http://localhost:8080/api/categories', {
+        headers: authHeader()
+      });
       
       setCategories(Array.isArray(response.data) ? response.data : []);
       setFilteredCategories(Array.isArray(response.data) ? response.data : []);
@@ -61,12 +96,9 @@ const CategoryList = () => {
     }
   };
 
-  const applyFilters = useCallback(() => {
-    if (!Array.isArray(categories)) return;
-    
+  const applyFilters = () => {
     let result = [...categories];
     
-    // Apply search term filter
     if (searchTerm) {
       const lowerSearchTerm = searchTerm.toLowerCase();
       result = result.filter(category => 
@@ -76,16 +108,7 @@ const CategoryList = () => {
     }
     
     setFilteredCategories(result);
-    setPage(0); // Reset to first page when filtering
-  }, [categories, searchTerm]);
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [searchTerm, categories, applyFilters]);
+  };
 
   const handleOpenDialog = (category = null) => {
     if (category) {
@@ -136,6 +159,7 @@ const CategoryList = () => {
           currentCategory,
           {
             headers: {
+              ...authHeader(),
               'Content-Type': 'application/json'
             }
           }
@@ -155,6 +179,7 @@ const CategoryList = () => {
           currentCategory,
           {
             headers: {
+              ...authHeader(),
               'Content-Type': 'application/json'
             }
           }
@@ -190,7 +215,9 @@ const CategoryList = () => {
     if (!categoryToDelete) return;
     
     try {
-      await axios.delete(`http://localhost:8080/api/categories/${categoryToDelete.id}`);
+      await axios.delete(`http://localhost:8080/api/categories/${categoryToDelete.id}`, {
+        headers: authHeader()
+      });
       
       // Remove deleted category from categories array
       setCategories(categories.filter(c => c.id !== categoryToDelete.id));
@@ -220,195 +247,327 @@ const CategoryList = () => {
     });
   };
 
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
+  if (loading && categories.length === 0) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+        <CircularProgress size={60} />
+      </Box>
+    );
+  }
 
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  const clearFilters = () => {
-    setSearchTerm('');
+  // Helper function to generate random background colors for categories
+  const getCategoryColor = (index) => {
+    const colors = [
+      'linear-gradient(45deg, #3a7bd5, #00d2ff)',
+      'linear-gradient(45deg, #11998e, #38ef7d)',
+      'linear-gradient(45deg, #834d9b, #d04ed6)',
+      'linear-gradient(45deg, #fc4a1a, #f7b733)',
+      'linear-gradient(45deg, #4b6cb7, #182848)',
+      'linear-gradient(45deg, #24c6dc, #514a9d)',
+      'linear-gradient(45deg, #ff512f, #dd2476)'
+    ];
+    return colors[index % colors.length];
   };
 
   return (
-    <Box sx={{ p: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Categories
-        </Typography>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
+    <Box sx={{ p: 3, backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Typography 
+          variant="h4" 
+          sx={{ 
+            fontWeight: 600,
+            backgroundImage: 'linear-gradient(45deg, #3a7bd5, #00d2ff)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            fontFamily: "'Poppins', sans-serif"
+          }}
         >
-          Add Category
-        </Button>
+          Product Categories
+        </Typography>
+        <Box>
+          <Button
+            variant="contained"
+            startIcon={<RefreshIcon />}
+            onClick={fetchCategories}
+            sx={{ 
+              mr: 2,
+              backgroundColor: '#6c757d',
+              '&:hover': { backgroundColor: '#5a6268' },
+              fontWeight: 500,
+              textTransform: 'none',
+              borderRadius: '8px'
+            }}
+          >
+            Refresh
+          </Button>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+            sx={{ 
+              backgroundColor: '#28a745',
+              '&:hover': { backgroundColor: '#218838' },
+              fontWeight: 500,
+              textTransform: 'none',
+              borderRadius: '8px'
+            }}
+          >
+            Add Category
+          </Button>
+        </Box>
       </Box>
 
-      {/* Search */}
-      <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={8}>
-            <TextField
-              fullWidth
-              variant="outlined"
-              placeholder="Search categories by name or description"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: { xs: 'center', md: 'flex-end' } }}>
-            <Button 
-              variant="outlined" 
-              startIcon={<FilterListIcon />}
-              onClick={clearFilters}
-              disabled={!searchTerm}
-            >
-              Clear Search
-            </Button>
-          </Grid>
-        </Grid>
+      {/* Search Bar */}
+      <Paper elevation={2} sx={{ p: 2, mb: 3, borderRadius: '12px' }}>
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Search categories by name or description"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: '8px',
+              '&.Mui-focused fieldset': {
+                borderColor: '#3a7bd5',
+              },
+            },
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ color: '#3a7bd5' }} />
+              </InputAdornment>
+            ),
+          }}
+        />
       </Paper>
 
-      {/* Categories Table */}
+      {/* Category Cards Grid */}
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 5 }}>
           <CircularProgress />
         </Box>
       ) : (
-        <>
-          <TableContainer component={Paper}>
-            <Table sx={{ minWidth: 650 }} aria-label="categories table">
-              <TableHead>
-                <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell>Products Count</TableCell>
-                  <TableCell align="center">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {Array.isArray(filteredCategories) && filteredCategories.length > 0 ? (
-                  (rowsPerPage > 0
-                    ? filteredCategories.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                    : filteredCategories
-                  ).map((category) => (
-                    <TableRow 
-                      key={category.id}
-                      hover
-                      sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                    >
-                      <TableCell>{category.id}</TableCell>
-                      <TableCell component="th" scope="row">
-                        <Typography fontWeight="medium">{category.name}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        {category.description || '-'}
-                      </TableCell>
-                      <TableCell>
-                        {category.productCount || 0}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Tooltip title="Edit">
-                          <IconButton size="small" onClick={() => handleOpenDialog(category)}>
-                            <EditIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete">
+        <Grid container spacing={3}>
+          {filteredCategories.length > 0 ? (
+            filteredCategories.map((category, index) => (
+              <Grid item xs={12} sm={6} md={4} key={category.id}>
+                <Card 
+                  elevation={2} 
+                  sx={{ 
+                    borderRadius: '12px',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'transform 0.3s, box-shadow 0.3s',
+                    '&:hover': {
+                      transform: 'translateY(-5px)',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
+                    }
+                  }}
+                >
+                  <Box
+                    sx={{
+                      height: '6px',
+                      background: getCategoryColor(index),
+                      borderTopLeftRadius: '12px',
+                      borderTopRightRadius: '12px'
+                    }}
+                  />
+                  <CardContent sx={{ flexGrow: 1, p: 3 }}>
+                    <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Avatar 
+                          sx={{ 
+                            background: getCategoryColor(index),
+                            mr: 2
+                          }}
+                        >
+                          <CategoryIcon />
+                        </Avatar>
+                        <Typography 
+                          variant="h6" 
+                          component="div" 
+                          fontWeight={600}
+                          sx={{ fontFamily: "'Poppins', sans-serif" }}
+                        >
+                          {category.name}
+                        </Typography>
+                      </Box>
+                      <Chip 
+                        icon={<ShoppingBagIcon sx={{ fontSize: '1rem !important' }} />}
+                        label={`${category.productCount} products`} 
+                        size="small"
+                        sx={{ 
+                          backgroundColor: 'rgba(58, 123, 213, 0.1)',
+                          color: '#3a7bd5',
+                          fontWeight: 500,
+                          '& .MuiChip-icon': { color: '#3a7bd5' }
+                        }}
+                      />
+                    </Box>
+                    {category.description && (
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary" 
+                        sx={{ 
+                          mb: 2,
+                          minHeight: '40px',
+                        }}
+                      >
+                        {category.description}
+                      </Typography>
+                    )}
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                      <Tooltip title="Edit">
+                        <IconButton 
+                          size="small" 
+                          color="primary" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenDialog(category);
+                          }}
+                          sx={{ 
+                            mr: 1,
+                            backgroundColor: 'rgba(58, 123, 213, 0.1)',
+                            '&:hover': { backgroundColor: 'rgba(58, 123, 213, 0.2)' }
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <span>
                           <IconButton 
                             size="small" 
                             color="error" 
-                            onClick={() => openDeleteConfirm(category)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openDeleteConfirm(category);
+                            }}
                             disabled={category.productCount > 0}
+                            sx={{ 
+                              backgroundColor: category.productCount > 0 ? 'rgba(200, 200, 200, 0.1)' : 'rgba(231, 76, 60, 0.1)',
+                              '&:hover': { backgroundColor: 'rgba(231, 76, 60, 0.2)' }
+                            }}
                           >
-                            <DeleteIcon />
+                            <DeleteIcon fontSize="small" />
                           </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
-                      <Typography variant="subtitle1">
-                        No categories found.
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {searchTerm 
-                          ? 'Try adjusting your search.' 
-                          : 'Add your first category using the button above.'}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25]}
-            component="div"
-            count={Array.isArray(filteredCategories) ? filteredCategories.length : 0}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-          />
-        </>
+                        </span>
+                      </Tooltip>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))
+          ) : (
+            <Grid item xs={12}>
+              <Paper 
+                elevation={1} 
+                sx={{ 
+                  p: 4, 
+                  borderRadius: '12px',
+                  textAlign: 'center',
+                  background: 'white',
+                  border: '1px dashed #ccc'
+                }}
+              >
+                <CategoryIcon sx={{ fontSize: 60, color: '#aaa', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  No categories found
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {searchTerm ? 'Try adjusting your search terms' : 'Add your first category using the button above'}
+                </Typography>
+              </Paper>
+            </Grid>
+          )}
+        </Grid>
       )}
 
       {/* Add/Edit Category Dialog */}
       <Dialog 
         open={openDialog} 
         onClose={handleCloseDialog}
-        maxWidth="md"
+        maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '12px',
+            padding: 2
+          }
+        }}
       >
-        <DialogTitle>
-          {isEditing ? 'Edit Category' : 'Add New Category'}
+        <DialogTitle sx={{ pb: 1 }}>
+          <Typography variant="h5" fontWeight={600} color="#3a7bd5">
+            {isEditing ? 'Edit Category' : 'Add New Category'}
+          </Typography>
         </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 0.5 }}>
-            <Grid item xs={12}>
-              <TextField
-                name="name"
-                label="Category Name"
-                fullWidth
-                value={currentCategory.name}
-                onChange={handleInputChange}
-                required
-                autoFocus
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                name="description"
-                label="Description"
-                fullWidth
-                value={currentCategory.description || ''}
-                onChange={handleInputChange}
-                multiline
-                rows={3}
-              />
-            </Grid>
-          </Grid>
+        <Divider />
+        <DialogContent sx={{ pt: 3 }}>
+          <TextField
+            name="name"
+            label="Category Name"
+            fullWidth
+            value={currentCategory.name}
+            onChange={handleInputChange}
+            required
+            autoFocus
+            sx={{ 
+              mb: 3,
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '8px',
+              }
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <CategoryIcon sx={{ color: 'rgba(58, 123, 213, 0.6)' }} />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <TextField
+            name="description"
+            label="Description"
+            fullWidth
+            value={currentCategory.description || ''}
+            onChange={handleInputChange}
+            multiline
+            rows={4}
+            sx={{ 
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '8px',
+              }
+            }}
+            placeholder="Enter a description for this category (optional)"
+          />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={handleCloseDialog} color="inherit">
+          <Button 
+            onClick={handleCloseDialog} 
+            sx={{ 
+              color: '#6c757d',
+              fontWeight: 500,
+              borderRadius: '8px'
+            }}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSaveCategory} variant="contained" color="primary">
+          <Button 
+            onClick={handleSaveCategory} 
+            variant="contained"
+            sx={{ 
+              backgroundColor: '#3a7bd5',
+              '&:hover': { backgroundColor: '#2a6ac5' },
+              fontWeight: 500,
+              textTransform: 'none',
+              borderRadius: '8px'
+            }}
+          >
             {isEditing ? 'Update' : 'Add'} Category
           </Button>
         </DialogActions>
@@ -418,21 +577,45 @@ const CategoryList = () => {
       <Dialog
         open={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: '12px',
+            padding: 2
+          }
+        }}
       >
-        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogTitle>
+          <Typography variant="h6" fontWeight={600}>
+            Confirm Delete
+          </Typography>
+        </DialogTitle>
+        <Divider />
         <DialogContent>
-          <Typography>
+          <Typography variant="body1" gutterBottom>
             Are you sure you want to delete the category "{categoryToDelete?.name}"? This action cannot be undone.
           </Typography>
           {categoryToDelete && categoryToDelete.productCount > 0 && (
-            <Typography color="error" sx={{ mt: 2 }}>
+            <Alert 
+              severity="warning" 
+              sx={{ 
+                mt: 2,
+                borderRadius: '8px'
+              }}
+            >
               This category has {categoryToDelete.productCount} products assigned to it. 
               Please reassign or delete these products first.
-            </Typography>
+            </Alert>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteConfirmOpen(false)} color="inherit">
+          <Button 
+            onClick={() => setDeleteConfirmOpen(false)} 
+            sx={{ 
+              color: '#6c757d',
+              fontWeight: 500,
+              borderRadius: '8px'
+            }}
+          >
             Cancel
           </Button>
           <Button 
@@ -440,6 +623,11 @@ const CategoryList = () => {
             variant="contained" 
             color="error"
             disabled={categoryToDelete && categoryToDelete.productCount > 0}
+            sx={{ 
+              fontWeight: 500,
+              textTransform: 'none',
+              borderRadius: '8px'
+            }}
           >
             Delete
           </Button>
@@ -457,7 +645,11 @@ const CategoryList = () => {
           onClose={handleCloseSnackbar} 
           severity={snackbar.severity} 
           variant="filled"
-          sx={{ width: '100%' }}
+          sx={{ 
+            width: '100%',
+            boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+            borderRadius: '8px'
+          }}
         >
           {snackbar.message}
         </Alert>
@@ -466,4 +658,4 @@ const CategoryList = () => {
   );
 };
 
-export default CategoryList;
+export default ModernCategoryList;

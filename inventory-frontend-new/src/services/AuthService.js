@@ -77,8 +77,10 @@ class AuthService {
 
   hasRole(role) {
     const user = this.getCurrentUser();
-    if (!user || !user.roles) return false;
-    return user.roles.includes(role);
+    if (!user || !Array.isArray(user.roles)) return false;
+    
+    // Check for both formats of the role (with and without ROLE_ prefix)
+    return user.roles.includes(role) || user.roles.includes(`ROLE_${role}`);
   }
 
   isAdmin() {

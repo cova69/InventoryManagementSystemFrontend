@@ -17,7 +17,9 @@ import {
   useMediaQuery, 
   Avatar, 
   Divider,
-  Tooltip
+  Tooltip,
+  Badge,
+  Paper
 } from '@mui/material';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import InventoryIcon from '@mui/icons-material/Inventory';
@@ -32,6 +34,9 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
 import PeopleIcon from '@mui/icons-material/People';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import SettingsIcon from '@mui/icons-material/Settings';
+import SearchIcon from '@mui/icons-material/Search';
 import { AuthContext } from '../../context/AuthContext';
 
 const Navbar = () => {
@@ -45,6 +50,7 @@ const Navbar = () => {
   const [productsMenuAnchor, setProductsMenuAnchor] = useState(null);
   const [reportsMenuAnchor, setReportsMenuAnchor] = useState(null);
   const [userMenuAnchor, setUserMenuAnchor] = useState(null);
+  const [notificationsAnchor, setNotificationsAnchor] = useState(null);
 
   const isActive = (path) => location.pathname === path;
 
@@ -78,6 +84,14 @@ const Navbar = () => {
   const handleUserMenuClose = () => {
     setUserMenuAnchor(null);
   };
+
+  const handleNotificationsOpen = (event) => {
+    setNotificationsAnchor(event.currentTarget);
+  };
+
+  const handleNotificationsClose = () => {
+    setNotificationsAnchor(null);
+  };
   
   const handleLogout = () => {
     handleUserMenuClose();
@@ -100,34 +114,57 @@ const Navbar = () => {
 
   const drawer = (
     <Box 
-      sx={{ width: 250 }} 
+      sx={{ width: 280 }} 
       role="presentation" 
       onClick={toggleDrawer(false)} 
       onKeyDown={toggleDrawer(false)}
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 2, mb: 2 }}>
+      <Box 
+        sx={{ 
+          p: 3, 
+          mb: 2, 
+          backgroundImage: 'linear-gradient(120deg, #3498db, #2980b9)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
         <Avatar 
           sx={{ 
-            width: 64, 
-            height: 64, 
-            mb: 1, 
-            bgcolor: theme.palette.primary.main,
-            boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+            width: 70, 
+            height: 70, 
+            mb: 2, 
+            bgcolor: 'rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
           }}
         >
-          <InventoryIcon fontSize="large" />
+          <InventoryIcon sx={{ fontSize: 40 }} />
         </Avatar>
-        <Typography variant="h6" color="primary">
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            color: 'white', 
+            fontWeight: 'bold',
+            fontFamily: "'Montserrat', sans-serif"
+          }}
+        >
           Inventory System
         </Typography>
         {currentUser && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: 'rgba(255,255,255,0.8)', 
+              mt: 1,
+              fontFamily: "'Roboto', sans-serif"
+            }}
+          >
             {currentUser.username}
           </Typography>
         )}
       </Box>
-      <Divider />
-      <List>
+      
+      <List component="nav" sx={{ px: 2 }}>
         {drawerItems.map((item) => (
           <ListItem 
             button 
@@ -135,33 +172,73 @@ const Navbar = () => {
             to={item.path} 
             key={item.text}
             sx={{ 
-              py: 1,
-              backgroundColor: isActive(item.path) ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
-              borderLeft: isActive(item.path) ? `4px solid ${theme.palette.primary.main}` : '4px solid transparent',
+              py: 1.5,
+              mb: 1,
+              backgroundColor: isActive(item.path) ? 'rgba(52, 152, 219, 0.1)' : 'transparent',
+              borderRadius: '8px',
+              borderLeft: isActive(item.path) ? `4px solid #3498db` : '4px solid transparent',
               '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                backgroundColor: 'rgba(52, 152, 219, 0.05)',
               }
             }}
           >
-            <ListItemIcon sx={{ color: isActive(item.path) ? theme.palette.primary.main : 'inherit' }}>
+            <ListItemIcon sx={{ 
+              color: isActive(item.path) ? '#3498db' : 'rgba(0, 0, 0, 0.54)',
+              minWidth: '40px'
+            }}>
               {item.icon}
             </ListItemIcon>
             <ListItemText 
               primary={item.text} 
               primaryTypographyProps={{ 
-                fontWeight: isActive(item.path) ? 'bold' : 'normal'
+                fontWeight: isActive(item.path) ? 600 : 400,
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: '0.95rem'
               }}
             />
+            {isActive(item.path) && (
+              <Box 
+                sx={{ 
+                  width: 6, 
+                  height: 6, 
+                  borderRadius: '50%', 
+                  backgroundColor: '#3498db',
+                  mr: 1
+                }} 
+              />
+            )}
           </ListItem>
         ))}
       </List>
-      <Divider />
-      <List>
-        <ListItem button onClick={handleLogout}>
-          <ListItemIcon>
+      
+      <Divider sx={{ my: 2 }} />
+      
+      <List component="nav" sx={{ px: 2 }}>
+        <ListItem 
+          button 
+          onClick={handleLogout}
+          sx={{ 
+            py: 1.5,
+            borderRadius: '8px',
+            '&:hover': {
+              backgroundColor: 'rgba(231, 76, 60, 0.05)',
+            }
+          }}
+        >
+          <ListItemIcon sx={{ 
+            color: '#e74c3c',
+            minWidth: '40px'
+          }}>
             <LogoutIcon />
           </ListItemIcon>
-          <ListItemText primary="Logout" />
+          <ListItemText 
+            primary="Logout" 
+            primaryTypographyProps={{ 
+              fontFamily: "'Poppins', sans-serif",
+              fontSize: '0.95rem',
+              color: '#e74c3c'
+            }}
+          />
         </ListItem>
       </List>
     </Box>
@@ -170,8 +247,8 @@ const Navbar = () => {
   return (
     <>
       <AppBar 
-        position="static" 
-        elevation={0}
+        position="sticky" 
+        elevation={1}
         sx={{ 
           backgroundColor: 'white', 
           color: 'text.primary',
@@ -179,242 +256,176 @@ const Navbar = () => {
           borderColor: 'divider',
         }}
       >
-        <Toolbar>
-          {isMobile ? (
-            <>
+        <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
+          {/* Left section */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {isMobile ? (
               <IconButton
                 size="large"
                 edge="start"
                 color="inherit"
                 aria-label="menu"
                 onClick={toggleDrawer(true)}
-                sx={{ mr: 2 }}
+                sx={{ 
+                  mr: 2,
+                  color: '#3498db'
+                }}
               >
                 <MenuIcon />
               </IconButton>
-              <Typography 
-                variant="h6" 
+            ) : (
+              <Box 
                 component={Link} 
-                to="/" 
+                to="/"
                 sx={{ 
-                  flexGrow: 1, 
-                  textDecoration: 'none', 
-                  color: 'inherit', 
                   display: 'flex', 
-                  alignItems: 'center' 
+                  alignItems: 'center',
+                  textDecoration: 'none',
+                  color: 'inherit'
                 }}
               >
-                <InventoryIcon sx={{ mr: 1 }} />
-                Inventory System
-              </Typography>
-              
-              {/* User menu for mobile */}
-              <Tooltip title="Account">
-                <IconButton
-                  onClick={handleUserMenuOpen}
-                  size="large"
-                  edge="end"
-                  color="inherit"
-                >
-                  <AccountCircleIcon />
-                </IconButton>
-              </Tooltip>
-            </>
-          ) : (
-            <>
-              <Typography 
-                variant="h6" 
-                component={Link} 
-                to="/" 
-                sx={{ 
-                  textDecoration: 'none', 
-                  color: 'inherit', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  mr: 4 
-                }}
-              >
-                <InventoryIcon sx={{ mr: 1 }} />
-                Inventory System
-              </Typography>
-              <Box sx={{ display: 'flex', flexGrow: 1 }}>
-                <Button 
-                  color="inherit" 
-                  component={Link} 
-                  to="/"
+                <Avatar 
                   sx={{ 
-                    mx: 1, 
-                    borderBottom: isActive('/') ? '2px solid' : '2px solid transparent',
-                    borderColor: isActive('/') ? 'primary.main' : 'transparent',
-                    borderRadius: 0,
-                    '&:hover': {
-                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                    },
+                    bgcolor: 'rgba(52, 152, 219, 0.1)', 
+                    color: '#3498db',
+                    width: 40,
+                    height: 40,
+                    mr: 1.5
                   }}
                 >
-                  Dashboard
-                </Button>
-                
-                <Button 
-                  color="inherit" 
+                  <InventoryIcon />
+                </Avatar>
+                <Typography 
+                  variant="h6" 
                   sx={{ 
-                    mx: 1,
-                    borderBottom: ['/products', '/categories'].includes(location.pathname) ? '2px solid' : '2px solid transparent',
-                    borderColor: ['/products', '/categories'].includes(location.pathname) ? 'primary.main' : 'transparent',
-                    borderRadius: 0,
-                    '&:hover': {
-                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                    },
-                  }}
-                  endIcon={<KeyboardArrowDownIcon />}
-                  onClick={handleProductsMenuOpen}
-                >
-                  Products
-                </Button>
-                <Menu
-                  anchorEl={productsMenuAnchor}
-                  open={Boolean(productsMenuAnchor)}
-                  onClose={handleProductsMenuClose}
-                  MenuListProps={{
-                    'aria-labelledby': 'products-button',
-                  }}
-                  anchorOrigin={{
-                    vertical: 'bottom',
-                    horizontal: 'center',
-                  }}
-                  transformOrigin={{
-                    vertical: 'top',
-                    horizontal: 'center',
+                    fontWeight: 600,
+                    backgroundImage: 'linear-gradient(45deg, #3a7bd5, #00d2ff)',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    fontFamily: "'Poppins', sans-serif",
+                    display: { xs: 'none', sm: 'block' }
                   }}
                 >
-                  <MenuItem 
-                    onClick={handleProductsMenuClose} 
-                    component={Link} 
-                    to="/products"
-                    selected={isActive('/products')}
-                  >
-                    <ListItemIcon>
-                      <ShoppingCartIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>Products</ListItemText>
-                  </MenuItem>
-                  <MenuItem 
-                    onClick={handleProductsMenuClose} 
-                    component={Link} 
-                    to="/categories"
-                    selected={isActive('/categories')}
-                  >
-                    <ListItemIcon>
-                      <CategoryIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>Categories</ListItemText>
-                  </MenuItem>
-                </Menu>
-                
-                <Button 
-                  color="inherit" 
-                  component={Link} 
-                  to="/suppliers"
-                  sx={{ 
-                    mx: 1, 
-                    borderBottom: isActive('/suppliers') ? '2px solid' : '2px solid transparent',
-                    borderColor: isActive('/suppliers') ? 'primary.main' : 'transparent',
-                    borderRadius: 0,
-                    '&:hover': {
-                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                    },
-                  }}
-                >
-                  Suppliers
-                </Button>
-                
-                <Button 
-                  color="inherit" 
-                  component={Link} 
-                  to="/inventory"
-                  sx={{ 
-                    mx: 1, 
-                    borderBottom: isActive('/inventory') ? '2px solid' : '2px solid transparent',
-                    borderColor: isActive('/inventory') ? 'primary.main' : 'transparent',
-                    borderRadius: 0,
-                    '&:hover': {
-                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                    },
-                  }}
-                >
-                  Inventory
-                </Button>
-                
-                {/* Admin-only buttons */}
-                {isAdmin() && (
-                  <Button 
-                    color="inherit" 
-                    component={Link} 
-                    to="/users"
-                    sx={{ 
-                      mx: 1, 
-                      borderBottom: isActive('/users') ? '2px solid' : '2px solid transparent',
-                      borderColor: isActive('/users') ? 'primary.main' : 'transparent',
-                      borderRadius: 0,
-                      '&:hover': {
-                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                      },
-                    }}
-                  >
-                    Users
-                  </Button>
-                )}
+                  Inventory System
+                </Typography>
               </Box>
-              
-              {/* User menu */}
-              <Box sx={{ ml: 2 }}>
-                <Tooltip title="Account">
-                  <Button 
-                    onClick={handleUserMenuOpen}
-                    color="inherit"
-                    startIcon={<AccountCircleIcon />}
-                    endIcon={<KeyboardArrowDownIcon />}
-                  >
-                    {currentUser?.username}
-                  </Button>
-                </Tooltip>
-              </Box>
-            </>
-          )}
-          
-          {/* User menu */}
-          <Menu
-            anchorEl={userMenuAnchor}
-            id="account-menu"
-            open={Boolean(userMenuAnchor)}
-            onClose={handleUserMenuClose}
-            onClick={handleUserMenuClose}
-            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-          >
-            <MenuItem disabled>
-              <Typography variant="body2" color="text.secondary">
-                Signed in as <strong>{currentUser?.email}</strong>
-              </Typography>
-            </MenuItem>
-            <Divider />
-            {isAdmin() && (
-              <MenuItem component={Link} to="/users">
-                <ListItemIcon>
-                  <PeopleIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText>User Management</ListItemText>
-              </MenuItem>
             )}
-            <MenuItem onClick={handleLogout}>
-              <ListItemIcon>
-                <LogoutIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Logout</ListItemText>
-            </MenuItem>
-          </Menu>
+          </Box>
+
+          {/* Center section - Navigation (desktop only) */}
+          {!isMobile && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mx: 2 }}>
+              {drawerItems.map((item) => (
+                <Button 
+                  key={item.text}
+                  component={Link} 
+                  to={item.path}
+                  sx={{ 
+                    mx: 1, 
+                    color: 'text.primary',
+                    fontWeight: isActive(item.path) ? 600 : 400,
+                    borderRadius: '8px',
+                    position: 'relative',
+                    '&:after': {
+                      content: '""',
+                      position: 'absolute',
+                      bottom: '5px',
+                      left: isActive(item.path) ? '20%' : '50%',
+                      right: isActive(item.path) ? '20%' : '50%',
+                      height: '3px',
+                      backgroundColor: '#3498db',
+                      transition: 'all 0.3s ease',
+                      opacity: isActive(item.path) ? 1 : 0
+                    },
+                    '&:hover': {
+                      backgroundColor: 'rgba(52, 152, 219, 0.05)',
+                      '&:after': {
+                        left: '20%',
+                        right: '20%',
+                        opacity: 1
+                      }
+                    }
+                  }}
+                  startIcon={item.icon}
+                >
+                  {item.text}
+                </Button>
+              ))}
+            </Box>
+          )}
+
+          {/* Right section - User & notifications */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {/* Notifications */}
+            <Tooltip title="Notifications">
+              <IconButton 
+                color="inherit" 
+                onClick={handleNotificationsOpen}
+                sx={{ mx: 0.5 }}
+              >
+                <Badge badgeContent={3} color="error">
+                  <NotificationsIcon />
+                </Badge>
+              </IconButton>
+            </Tooltip>
+            
+            {/* User profile */}
+            <Box 
+              sx={{ 
+                ml: 1,
+                display: 'flex',
+                alignItems: 'center'
+              }}
+            >
+              <Button
+                onClick={handleUserMenuOpen}
+                sx={{
+                  textTransform: 'none',
+                  borderRadius: '24px',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  px: 1,
+                  py: 0.5,
+                  '&:hover': {
+                    backgroundColor: 'rgba(52, 152, 219, 0.05)'
+                  }
+                }}
+              >
+                <Avatar 
+                  sx={{ 
+                    width: 32, 
+                    height: 32,
+                    bgcolor: 'rgba(52, 152, 219, 0.8)',
+                    mr: { xs: 0, sm: 1 }
+                  }}
+                >
+                  {currentUser?.username?.charAt(0).toUpperCase() || 'U'}
+                </Avatar>
+                <Typography 
+                  sx={{ 
+                    display: { xs: 'none', sm: 'block' },
+                    color: 'text.primary',
+                    fontWeight: 500,
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  {currentUser?.username}
+                </Typography>
+                <KeyboardArrowDownIcon 
+                  sx={{ 
+                    ml: 0.5,
+                    fontSize: '1rem',
+                    display: { xs: 'none', sm: 'block' }
+                  }} 
+                />
+              </Button>
+            </Box>
+          </Box>
         </Toolbar>
       </AppBar>
+
+      {/* Drawer for mobile */}
       <Drawer
         anchor="left"
         open={drawerOpen}
@@ -422,6 +433,205 @@ const Navbar = () => {
       >
         {drawer}
       </Drawer>
+
+      {/* Notifications Menu */}
+      <Menu
+        anchorEl={notificationsAnchor}
+        open={Boolean(notificationsAnchor)}
+        onClose={handleNotificationsClose}
+        PaperProps={{
+          elevation: 3,
+          sx: { 
+            mt: 1.5, 
+            borderRadius: '12px',
+            width: 320,
+            overflow: 'visible',
+            '&:before': {
+              content: '""',
+              position: 'absolute',
+              top: -6,
+              right: 14,
+              width: 12,
+              height: 12,
+              bgcolor: 'background.paper',
+              transform: 'rotate(45deg)',
+              zIndex: 0,
+            },
+          }
+        }}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+      >
+        <Box sx={{ p: 2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+            Notifications
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+          
+          {/* Notification Items */}
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              p: 1.5,
+              mb: 1,
+              bgcolor: 'rgba(231, 76, 60, 0.1)',
+              borderRadius: '8px',
+              border: '1px solid rgba(231, 76, 60, 0.2)'
+            }}
+          >
+            <Avatar sx={{ bgcolor: 'rgba(231, 76, 60, 0.2)', color: '#e74c3c' }}>
+              <WarehouseIcon fontSize="small" />
+            </Avatar>
+            <Box sx={{ ml: 2 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                Low stock alert
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                5 items need reordering
+              </Typography>
+            </Box>
+          </Box>
+          
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              p: 1.5,
+              mb: 1,
+              bgcolor: 'rgba(46, 204, 113, 0.1)',
+              borderRadius: '8px',
+              border: '1px solid rgba(46, 204, 113, 0.2)'
+            }}
+          >
+            <Avatar sx={{ bgcolor: 'rgba(46, 204, 113, 0.2)', color: '#2ecc71' }}>
+              <ShoppingCartIcon fontSize="small" />
+            </Avatar>
+            <Box sx={{ ml: 2 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                New products added
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                3 new products were added today
+              </Typography>
+            </Box>
+          </Box>
+          
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              p: 1.5,
+              bgcolor: 'rgba(52, 152, 219, 0.1)',
+              borderRadius: '8px',
+              border: '1px solid rgba(52, 152, 219, 0.2)'
+            }}
+          >
+            <Avatar sx={{ bgcolor: 'rgba(52, 152, 219, 0.2)', color: '#3498db' }}>
+              <LocalShippingIcon fontSize="small" />
+            </Avatar>
+            <Box sx={{ ml: 2 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                Supplier update
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                ABC Electronics updated their catalog
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      </Menu>
+      
+      {/* User Profile Menu */}
+      <Menu
+        anchorEl={userMenuAnchor}
+        id="account-menu"
+        open={Boolean(userMenuAnchor)}
+        onClose={handleUserMenuClose}
+        onClick={handleUserMenuClose}
+        PaperProps={{
+          elevation: 3,
+          sx: { 
+            mt: 1.5, 
+            borderRadius: '12px',
+            minWidth: 220,
+            overflow: 'visible',
+            '&:before': {
+              content: '""',
+              position: 'absolute',
+              top: -6,
+              right: 14,
+              width: 12,
+              height: 12,
+              bgcolor: 'background.paper',
+              transform: 'rotate(45deg)',
+              zIndex: 0,
+            },
+          }
+        }}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+      >
+        <Box sx={{ px: 2, py: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <Avatar 
+              sx={{ 
+                width: 40, 
+                height: 40,
+                bgcolor: 'rgba(52, 152, 219, 0.8)',
+                mr: 1.5
+              }}
+            >
+              {currentUser?.username?.charAt(0).toUpperCase() || 'U'}
+            </Avatar>
+            <Box>
+              <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                {currentUser?.username}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {currentUser?.email || 'user@example.com'}
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+        
+        <Divider />
+        
+        <MenuItem 
+          component={Link} 
+          to="/profile" 
+          sx={{ py: 1.5 }}
+        >
+          <ListItemIcon>
+            <AccountCircleIcon fontSize="small" sx={{ color: '#3498db' }} />
+          </ListItemIcon>
+          <ListItemText>
+            My Profile
+          </ListItemText>
+        </MenuItem>
+        
+        {isAdmin() && (
+          <MenuItem component={Link} to="/users" sx={{ py: 1.5 }}>
+            <ListItemIcon>
+              <PeopleIcon fontSize="small" sx={{ color: '#3498db' }} />
+            </ListItemIcon>
+            <ListItemText>
+              User Management
+            </ListItemText>
+          </MenuItem>
+        )}
+        
+        <Divider />
+        
+        <MenuItem onClick={handleLogout} sx={{ py: 1.5, color: '#e74c3c' }}>
+          <ListItemIcon>
+            <LogoutIcon fontSize="small" sx={{ color: '#e74c3c' }} />
+          </ListItemIcon>
+          <ListItemText>
+            Logout
+          </ListItemText>
+        </MenuItem>
+      </Menu>
     </>
   );
 };

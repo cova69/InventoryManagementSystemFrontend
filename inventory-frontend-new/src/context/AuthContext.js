@@ -71,12 +71,91 @@ export const AuthProvider = ({ children }) => {
   };
 
   const isAdmin = () => {
-    return currentUser && currentUser.roles && currentUser.roles.includes('ADMIN');
+    if (!currentUser) return false;
+    
+    // Check if roles exist as an array
+    if (Array.isArray(currentUser.roles)) {
+      return currentUser.roles.includes('ADMIN') || currentUser.roles.includes('ROLE_ADMIN');
+    }
+    
+    // Check if it's stored as a single string
+    if (typeof currentUser.role === 'string') {
+      return currentUser.role === 'ADMIN' || currentUser.role === 'ROLE_ADMIN';
+    }
+    
+    // Try to decode the token manually to check its contents
+    try {
+      if (currentUser.token) {
+        const payload = JSON.parse(atob(currentUser.token.split('.')[1]));
+        console.log("JWT payload:", payload);
+        
+        // Check different possible structures in the token payload
+        if (payload.auth && Array.isArray(payload.auth)) {
+          return payload.auth.includes('ADMIN') || payload.auth.includes('ROLE_ADMIN');
+        }
+        
+        if (payload.authorities && Array.isArray(payload.authorities)) {
+          return payload.authorities.some(auth => 
+            auth === 'ADMIN' || auth === 'ROLE_ADMIN' || 
+            auth.authority === 'ADMIN' || auth.authority === 'ROLE_ADMIN');
+        }
+        
+        if (payload.role) {
+          return payload.role === 'ADMIN' || payload.role === 'ROLE_ADMIN';
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing JWT token:", e);
+    }
+    
+    return false;
   };
 
   const isManager = () => {
-    return currentUser && currentUser.roles && 
-      (currentUser.roles.includes('MANAGER') || currentUser.roles.includes('ADMIN'));
+    if (!currentUser) return false;
+    
+    // Check if roles exist as an array
+    if (Array.isArray(currentUser.roles)) {
+      return currentUser.roles.some(role => 
+        ['MANAGER', 'ROLE_MANAGER', 'ADMIN', 'ROLE_ADMIN'].includes(role));
+    }
+    
+    // Check if it's stored as a single string
+    if (typeof currentUser.role === 'string') {
+      return ['MANAGER', 'ROLE_MANAGER', 'ADMIN', 'ROLE_ADMIN'].includes(currentUser.role);
+    }
+    
+    // Try to decode the token manually to check its contents
+    try {
+      if (currentUser.token) {
+        const payload = JSON.parse(atob(currentUser.token.split('.')[1]));
+        
+        // Check different possible structures in the token payload
+        if (payload.auth && Array.isArray(payload.auth)) {
+          return payload.auth.some(auth => 
+            ['MANAGER', 'ROLE_MANAGER', 'ADMIN', 'ROLE_ADMIN'].includes(auth));
+        }
+        
+        if (payload.authorities && Array.isArray(payload.authorities)) {
+          return payload.authorities.some(auth => {
+            if (typeof auth === 'string') {
+              return ['MANAGER', 'ROLE_MANAGER', 'ADMIN', 'ROLE_ADMIN'].includes(auth);
+            } else if (auth.authority) {
+              return ['MANAGER', 'ROLE_MANAGER', 'ADMIN', 'ROLE_ADMIN'].includes(auth.authority);
+            }
+            return false;
+          });
+        }
+        
+        if (payload.role) {
+          return ['MANAGER', 'ROLE_MANAGER', 'ADMIN', 'ROLE_ADMIN'].includes(payload.role);
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing JWT token in isManager:", e);
+    }
+    
+    return false;
   };
 
   const refreshAuthState = () => {

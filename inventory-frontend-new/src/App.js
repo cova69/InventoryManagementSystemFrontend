@@ -10,6 +10,7 @@ import InventoryList from './components/inventory/InventoryList';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import UserList from './components/users/UserList';
+import UserProfile from './components/users/UserProfile'; // Import the UserProfile component
 import Unauthorized from './components/common/Unauthorized';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import AuthTest from './components/auth/AuthTest';
@@ -124,6 +125,23 @@ function App() {
                       <Navbar />
                       <Container style={{ marginTop: '20px' }}>
                         <InventoryList />
+                      </Container>
+                    </>
+                  }
+                />
+              }
+            />
+            
+            {/* User Profile Route */}
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute
+                  element={
+                    <>
+                      <Navbar />
+                      <Container style={{ marginTop: '20px' }}>
+                        <UserProfile />
                       </Container>
                     </>
                   }

@@ -1,20 +1,59 @@
-// src/components/suppliers/SupplierList.js
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Paper, Typography, Button, Table, TableBody, TableCell, 
-  TableContainer, TableHead, TableRow, TextField, Box,
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  IconButton, Tooltip, CircularProgress, Grid,
-  Snackbar, Alert, TablePagination, InputAdornment
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  Button,
+  Paper,
+  Grid,
+  TextField,
+  InputAdornment,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Divider,
+  Card,
+  CardContent,
+  Chip,
+  Avatar,
+  Tooltip,
+  CircularProgress,
+  Snackbar,
+  Alert,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import SearchIcon from '@mui/icons-material/Search';
-import FilterListIcon from '@mui/icons-material/FilterList';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Search as SearchIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  LocationOn as LocationIcon,
+  Person as PersonIcon,
+  LocalShipping as SupplierIcon,
+  ShoppingCart as ProductIcon,
+  Refresh as RefreshIcon
+} from '@mui/icons-material';
 import axios from 'axios';
 
-const SupplierList = () => {
+// Get auth header function
+function authHeader() {
+  const user = JSON.parse(localStorage.getItem('user'));
+  if (user && user.token) {
+    return { 'Authorization': 'Bearer ' + user.token };
+  } else {
+    return {};
+  }
+}
+
+const ModernSupplierList = () => {
   const [suppliers, setSuppliers] = useState([]);
   const [filteredSuppliers, setFilteredSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,41 +76,44 @@ const SupplierList = () => {
     severity: 'success'
   });
   const [searchTerm, setSearchTerm] = useState('');
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
+
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
+
+  useEffect(() => {
+    if (suppliers.length > 0) {
+      applyFilters();
+    }
+  }, [searchTerm, suppliers]);
 
   const fetchSuppliers = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:8080/api/suppliers');
+      const response = await axios.get('http://localhost:8080/api/suppliers', {
+        headers: authHeader()
+      });
       
-      // Add logging to understand the response
-      console.log('API Response:', response.data);
-      
-      // Ensure you're setting an array
-      const data = Array.isArray(response.data) ? response.data : [];
-      setSuppliers(data);
-      setFilteredSuppliers(data);
+      setSuppliers(Array.isArray(response.data) ? response.data : []);
+      setFilteredSuppliers(Array.isArray(response.data) ? response.data : []);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching suppliers:', error);
-      setSuppliers([]); // Set to empty array on error
-      setFilteredSuppliers([]);
-      setLoading(false);
       setSnackbar({
         open: true,
         message: 'Failed to load suppliers. Please try again later.',
         severity: 'error'
       });
+      setLoading(false);
     }
   };
 
-  const applyFilters = useCallback(() => {
+  const applyFilters = () => {
     if (!Array.isArray(suppliers)) return;
     
     let result = [...suppliers];
     
-    // Apply search term filter
     if (searchTerm) {
       const lowerSearchTerm = searchTerm.toLowerCase();
       result = result.filter(supplier => 
@@ -84,16 +126,7 @@ const SupplierList = () => {
     }
     
     setFilteredSuppliers(result);
-    setPage(0); // Reset to first page when filtering
-  }, [suppliers, searchTerm]);
-
-  useEffect(() => {
-    fetchSuppliers();
-  }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [searchTerm, suppliers, applyFilters]);
+  };
 
   const handleOpenDialog = (supplier = null) => {
     if (supplier) {
@@ -147,6 +180,7 @@ const SupplierList = () => {
           currentSupplier,
           {
             headers: {
+              ...authHeader(),
               'Content-Type': 'application/json'
             }
           }
@@ -166,6 +200,7 @@ const SupplierList = () => {
           currentSupplier,
           {
             headers: {
+              ...authHeader(),
               'Content-Type': 'application/json'
             }
           }
@@ -201,7 +236,9 @@ const SupplierList = () => {
     if (!supplierToDelete) return;
     
     try {
-      await axios.delete(`http://localhost:8080/api/suppliers/${supplierToDelete.id}`);
+      await axios.delete(`http://localhost:8080/api/suppliers/${supplierToDelete.id}`, {
+        headers: authHeader()
+      });
       
       // Remove deleted supplier from suppliers array
       setSuppliers(suppliers.filter(s => s.id !== supplierToDelete.id));
@@ -231,159 +268,427 @@ const SupplierList = () => {
     });
   };
 
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+  // Function to toggle between grid and table view
+  const toggleViewMode = () => {
+    setViewMode(viewMode === 'grid' ? 'table' : 'grid');
   };
 
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  const clearFilters = () => {
-    setSearchTerm('');
-  };
+  if (loading && suppliers.length === 0) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+        <CircularProgress size={60} />
+      </Box>
+    );
+  }
 
   return (
-    <Box sx={{ p: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1">
+    <Box sx={{ p: 3, backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Typography 
+          variant="h4" 
+          sx={{ 
+            fontWeight: 600,
+            backgroundImage: 'linear-gradient(45deg, #3a7bd5, #00d2ff)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            fontFamily: "'Poppins', sans-serif"
+          }}
+        >
           Suppliers
         </Typography>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          Add Supplier
-        </Button>
+        <Box>
+          <Button
+            variant="contained"
+            startIcon={<RefreshIcon />}
+            onClick={fetchSuppliers}
+            sx={{ 
+              mr: 2,
+              backgroundColor: '#6c757d',
+              '&:hover': { backgroundColor: '#5a6268' },
+              fontWeight: 500,
+              textTransform: 'none',
+              borderRadius: '8px'
+            }}
+          >
+            Refresh
+          </Button>
+          <Button 
+            variant="outlined" 
+            onClick={toggleViewMode}
+            sx={{ 
+              mr: 2,
+              borderColor: '#3a7bd5',
+              color: '#3a7bd5',
+              '&:hover': { 
+                borderColor: '#2a6ac5',
+                backgroundColor: 'rgba(58, 123, 213, 0.04)'
+              },
+              fontWeight: 500,
+              textTransform: 'none',
+              borderRadius: '8px'
+            }}
+          >
+            {viewMode === 'grid' ? 'Table View' : 'Grid View'}
+          </Button>
+          <Button 
+            variant="contained" 
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+            sx={{ 
+              backgroundColor: '#28a745',
+              '&:hover': { backgroundColor: '#218838' },
+              fontWeight: 500,
+              textTransform: 'none',
+              borderRadius: '8px'
+            }}
+          >
+            Add Supplier
+          </Button>
+        </Box>
       </Box>
 
-      {/* Search */}
-      <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={8}>
-            <TextField
-              fullWidth
-              variant="outlined"
-              placeholder="Search suppliers by name, contact, email, phone or address"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: { xs: 'center', md: 'flex-end' } }}>
-            <Button 
-              variant="outlined" 
-              startIcon={<FilterListIcon />}
-              onClick={clearFilters}
-              disabled={!searchTerm}
-            >
-              Clear Search
-            </Button>
-          </Grid>
-        </Grid>
+      {/* Search Bar */}
+      <Paper elevation={2} sx={{ p: 2, mb: 3, borderRadius: '12px' }}>
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Search suppliers by name, contact, email, phone or address"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: '8px',
+              '&.Mui-focused fieldset': {
+                borderColor: '#3a7bd5',
+              },
+            },
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ color: '#3a7bd5' }} />
+              </InputAdornment>
+            ),
+          }}
+        />
       </Paper>
 
-      {/* Suppliers Table */}
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 5 }}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <>
-          <TableContainer component={Paper}>
-            <Table sx={{ minWidth: 650 }} aria-label="suppliers table">
-              <TableHead>
-                <TableRow>
-                  <TableCell>ID</TableCell>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Contact Person</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Phone</TableCell>
-                  <TableCell>Products Count</TableCell>
-                  <TableCell align="center">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {Array.isArray(filteredSuppliers) && filteredSuppliers.length > 0 ? (
-                  (rowsPerPage > 0
-                    ? filteredSuppliers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                    : filteredSuppliers
-                  ).map((supplier) => (
-                    <TableRow 
-                      key={supplier.id}
-                      hover
-                      sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                    >
-                      <TableCell>{supplier.id}</TableCell>
-                      <TableCell component="th" scope="row">
-                        <Typography fontWeight="medium">{supplier.name}</Typography>
-                        {supplier.address && (
-                          <Typography variant="body2" color="text.secondary">
+      {/* Grid View */}
+      {viewMode === 'grid' ? (
+        <Grid container spacing={3}>
+          {filteredSuppliers.length > 0 ? (
+            filteredSuppliers.map((supplier) => (
+              <Grid item xs={12} sm={6} md={4} key={supplier.id}>
+                <Card 
+                  elevation={2} 
+                  sx={{ 
+                    borderRadius: '12px',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'transform 0.3s, box-shadow 0.3s',
+                    '&:hover': {
+                      transform: 'translateY(-5px)',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
+                    }
+                  }}
+                >
+                  <Box
+                    sx={{
+                      height: '6px',
+                      background: 'linear-gradient(90deg, #9b59b6, #6a0dad)',
+                      borderTopLeftRadius: '12px',
+                      borderTopRightRadius: '12px'
+                    }}
+                  />
+                  <CardContent sx={{ flexGrow: 1, p: 3 }}>
+                    <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Avatar 
+                          sx={{ 
+                            background: 'linear-gradient(90deg, #9b59b6, #6a0dad)',
+                            mr: 2
+                          }}
+                        >
+                          <SupplierIcon />
+                        </Avatar>
+                        <Box>
+                          <Typography 
+                            variant="h6" 
+                            component="div" 
+                            fontWeight={600}
+                            sx={{ fontFamily: "'Poppins', sans-serif" }}
+                          >
+                            {supplier.name}
+                          </Typography>
+                          {supplier.contactName && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                              <PersonIcon sx={{ color: '#6a0dad', fontSize: '0.875rem', mr: 0.5 }} />
+                              <Typography variant="body2" color="text.secondary">
+                                {supplier.contactName}
+                              </Typography>
+                            </Box>
+                          )}
+                        </Box>
+                      </Box>
+                      <Chip 
+                        icon={<ProductIcon sx={{ fontSize: '1rem !important' }} />}
+                        label={`${supplier.productCount} products`} 
+                        size="small"
+                        sx={{ 
+                          backgroundColor: 'rgba(155, 89, 182, 0.1)',
+                          color: '#9b59b6',
+                          fontWeight: 500,
+                          '& .MuiChip-icon': { color: '#9b59b6' }
+                        }}
+                      />
+                    </Box>
+
+                    <Divider sx={{ my: 2 }} />
+
+                    <Box sx={{ mb: 2 }}>
+                      {supplier.email && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                          <EmailIcon sx={{ color: '#9b59b6', fontSize: '1.25rem', mr: 1 }} />
+                          <Typography variant="body2">
+                            {supplier.email}
+                          </Typography>
+                        </Box>
+                      )}
+                      
+                      {supplier.phone && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                          <PhoneIcon sx={{ color: '#9b59b6', fontSize: '1.25rem', mr: 1 }} />
+                          <Typography variant="body2">
+                            {supplier.phone}
+                          </Typography>
+                        </Box>
+                      )}
+                      
+                      {supplier.address && (
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
+                          <LocationIcon sx={{ color: '#9b59b6', fontSize: '1.25rem', mr: 1, mt: 0.2 }} />
+                          <Typography variant="body2">
                             {supplier.address}
                           </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell>{supplier.contactName || '-'}</TableCell>
-                      <TableCell>{supplier.email || '-'}</TableCell>
-                      <TableCell>{supplier.phone || '-'}</TableCell>
-                      <TableCell>
-                        {supplier.productCount || 0}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Tooltip title="Edit">
-                          <IconButton size="small" onClick={() => handleOpenDialog(supplier)}>
-                            <EditIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete">
+                        </Box>
+                      )}
+                    </Box>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                      <Tooltip title="Edit">
+                        <IconButton 
+                          size="small" 
+                          color="primary" 
+                          onClick={() => handleOpenDialog(supplier)}
+                          sx={{ 
+                            mr: 1,
+                            backgroundColor: 'rgba(58, 123, 213, 0.1)',
+                            '&:hover': { backgroundColor: 'rgba(58, 123, 213, 0.2)' }
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <span>
                           <IconButton 
                             size="small" 
                             color="error" 
                             onClick={() => openDeleteConfirm(supplier)}
                             disabled={supplier.productCount > 0}
+                            sx={{ 
+                              backgroundColor: supplier.productCount > 0 ? 'rgba(200, 200, 200, 0.1)' : 'rgba(231, 76, 60, 0.1)',
+                              '&:hover': { backgroundColor: 'rgba(231, 76, 60, 0.2)' }
+                            }}
                           >
-                            <DeleteIcon />
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))
+          ) : (
+            <Grid item xs={12}>
+              <Paper 
+                elevation={1} 
+                sx={{ 
+                  p: 4, 
+                  borderRadius: '12px',
+                  textAlign: 'center',
+                  background: 'white',
+                  border: '1px dashed #ccc'
+                }}
+              >
+                <SupplierIcon sx={{ fontSize: 60, color: '#aaa', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  No suppliers found
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {searchTerm ? 'Try adjusting your search terms' : 'Add your first supplier using the button above'}
+                </Typography>
+              </Paper>
+            </Grid>
+          )}
+        </Grid>
+      ) : (
+        // Table View
+        <TableContainer 
+          component={Paper} 
+          elevation={2} 
+          sx={{ 
+            borderRadius: '12px',
+            overflow: 'hidden',
+            mb: 3
+          }}
+        >
+          <Table>
+            <TableHead sx={{ backgroundColor: 'rgba(155, 89, 182, 0.1)' }}>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 600, color: '#9b59b6' }}>Supplier</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#9b59b6' }}>Contact Person</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#9b59b6' }}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#9b59b6' }}>Phone</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#9b59b6' }}>Products</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, color: '#9b59b6' }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredSuppliers.length > 0 ? (
+                filteredSuppliers.map((supplier) => (
+                  <TableRow 
+                    key={supplier.id}
+                    hover
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'rgba(155, 89, 182, 0.03)'
+                      }
+                    }}
+                  >
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Box
+                          sx={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: '8px',
+                            backgroundColor: 'rgba(155, 89, 182, 0.1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            mr: 2
+                          }}
+                        >
+                          <SupplierIcon sx={{ color: '#9b59b6' }} />
+                        </Box>
+                        <Box>
+                          <Typography variant="body1" fontWeight={500}>{supplier.name}</Typography>
+                          {supplier.address && (
+                            <Typography 
+                              variant="caption" 
+                              color="text.secondary"
+                              sx={{ 
+                                display: 'flex',
+                                alignItems: 'center',
+                                mt: 0.5
+                              }}
+                            >
+                              <LocationIcon sx={{ fontSize: '0.75rem', mr: 0.5 }} />
+                              {supplier.address}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell>{supplier.contactName || '-'}</TableCell>
+                    <TableCell>
+                      {supplier.email ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <EmailIcon sx={{ color: '#9b59b6', fontSize: '1rem', mr: 0.5 }} />
+                          {supplier.email}
+                        </Box>
+                      ) : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {supplier.phone ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <PhoneIcon sx={{ color: '#9b59b6', fontSize: '1rem', mr: 0.5 }} />
+                          {supplier.phone}
+                        </Box>
+                      ) : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        icon={<ProductIcon fontSize="small" />}
+                        label={supplier.productCount || 0} 
+                        size="small"
+                        sx={{ 
+                          backgroundColor: 'rgba(155, 89, 182, 0.1)',
+                          color: '#9b59b6',
+                          fontWeight: 500,
+                          '& .MuiChip-icon': { color: '#9b59b6' }
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Box>
+                        <Tooltip title="Edit">
+                          <IconButton 
+                            size="small" 
+                            color="primary" 
+                            onClick={() => handleOpenDialog(supplier)}
+                            sx={{ 
+                              mx: 0.5,
+                              color: '#3a7bd5',
+                              '&:hover': {
+                                backgroundColor: 'rgba(58, 123, 213, 0.1)'
+                              }
+                            }}
+                          >
+                            <EditIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
-                      <Typography variant="subtitle1">
-                        No suppliers found.
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {searchTerm 
-                          ? 'Try adjusting your search.' 
-                          : 'Add your first supplier using the button above.'}
-                      </Typography>
+                        <Tooltip title="Delete">
+                          <span>
+                            <IconButton 
+                              size="small" 
+                              color="error"
+                              onClick={() => openDeleteConfirm(supplier)}
+                              disabled={supplier.productCount > 0}
+                              sx={{ 
+                                mx: 0.5,
+                                '&:hover': {
+                                  backgroundColor: 'rgba(231, 76, 60, 0.1)'
+                                }
+                              }}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </Box>
                     </TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25]}
-            component="div"
-            count={Array.isArray(filteredSuppliers) ? filteredSuppliers.length : 0}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-          />
-        </>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                    <Typography variant="h6" color="text.secondary">
+                      No suppliers found
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      {searchTerm ? 'Try adjusting your search terms' : 'Add your first supplier using the button above'}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
 
       {/* Add/Edit Supplier Dialog */}
@@ -392,12 +697,21 @@ const SupplierList = () => {
         onClose={handleCloseDialog}
         maxWidth="md"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '12px',
+            padding: 2
+          }
+        }}
       >
-        <DialogTitle>
-          {isEditing ? 'Edit Supplier' : 'Add New Supplier'}
+        <DialogTitle sx={{ pb: 1 }}>
+          <Typography variant="h5" fontWeight={600} color="#9b59b6">
+            {isEditing ? 'Edit Supplier' : 'Add New Supplier'}
+          </Typography>
         </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+        <Divider />
+        <DialogContent sx={{ pt: 3 }}>
+          <Grid container spacing={3}>
             <Grid item xs={12} sm={6}>
               <TextField
                 name="name"
@@ -407,8 +721,21 @@ const SupplierList = () => {
                 onChange={handleInputChange}
                 required
                 autoFocus
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px',
+                  }
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SupplierIcon sx={{ color: 'rgba(155, 89, 182, 0.6)' }} />
+                    </InputAdornment>
+                  ),
+                }}
               />
             </Grid>
+            
             <Grid item xs={12} sm={6}>
               <TextField
                 name="contactName"
@@ -416,8 +743,21 @@ const SupplierList = () => {
                 fullWidth
                 value={currentSupplier.contactName || ''}
                 onChange={handleInputChange}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px',
+                  }
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <PersonIcon sx={{ color: 'rgba(155, 89, 182, 0.6)' }} />
+                    </InputAdornment>
+                  ),
+                }}
               />
             </Grid>
+            
             <Grid item xs={12} sm={6}>
               <TextField
                 name="email"
@@ -426,8 +766,21 @@ const SupplierList = () => {
                 fullWidth
                 value={currentSupplier.email || ''}
                 onChange={handleInputChange}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px',
+                  }
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <EmailIcon sx={{ color: 'rgba(155, 89, 182, 0.6)' }} />
+                    </InputAdornment>
+                  ),
+                }}
               />
             </Grid>
+            
             <Grid item xs={12} sm={6}>
               <TextField
                 name="phone"
@@ -435,8 +788,21 @@ const SupplierList = () => {
                 fullWidth
                 value={currentSupplier.phone || ''}
                 onChange={handleInputChange}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px',
+                  }
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <PhoneIcon sx={{ color: 'rgba(155, 89, 182, 0.6)' }} />
+                    </InputAdornment>
+                  ),
+                }}
               />
             </Grid>
+            
             <Grid item xs={12}>
               <TextField
                 name="address"
@@ -446,15 +812,44 @@ const SupplierList = () => {
                 onChange={handleInputChange}
                 multiline
                 rows={3}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '8px',
+                  }
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1.5 }}>
+                      <LocationIcon sx={{ color: 'rgba(155, 89, 182, 0.6)' }} />
+                    </InputAdornment>
+                  ),
+                }}
               />
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={handleCloseDialog} color="inherit">
+          <Button 
+            onClick={handleCloseDialog} 
+            sx={{ 
+              color: '#6c757d',
+              fontWeight: 500,
+              borderRadius: '8px'
+            }}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSaveSupplier} variant="contained" color="primary">
+          <Button 
+            onClick={handleSaveSupplier} 
+            variant="contained"
+            sx={{ 
+              backgroundColor: '#9b59b6',
+              '&:hover': { backgroundColor: '#8e44ad' },
+              fontWeight: 500,
+              textTransform: 'none',
+              borderRadius: '8px'
+            }}
+          >
             {isEditing ? 'Update' : 'Add'} Supplier
           </Button>
         </DialogActions>
@@ -464,21 +859,45 @@ const SupplierList = () => {
       <Dialog
         open={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: '12px',
+            padding: 2
+          }
+        }}
       >
-        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogTitle>
+          <Typography variant="h6" fontWeight={600}>
+            Confirm Delete
+          </Typography>
+        </DialogTitle>
+        <Divider />
         <DialogContent>
-          <Typography>
+          <Typography variant="body1" gutterBottom>
             Are you sure you want to delete the supplier "{supplierToDelete?.name}"? This action cannot be undone.
           </Typography>
           {supplierToDelete && supplierToDelete.productCount > 0 && (
-            <Typography color="error" sx={{ mt: 2 }}>
+            <Alert 
+              severity="warning" 
+              sx={{ 
+                mt: 2,
+                borderRadius: '8px'
+              }}
+            >
               This supplier has {supplierToDelete.productCount} products assigned to it. 
               Please reassign or delete these products first.
-            </Typography>
+            </Alert>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteConfirmOpen(false)} color="inherit">
+          <Button 
+            onClick={() => setDeleteConfirmOpen(false)} 
+            sx={{ 
+              color: '#6c757d',
+              fontWeight: 500,
+              borderRadius: '8px'
+            }}
+          >
             Cancel
           </Button>
           <Button 
@@ -486,6 +905,11 @@ const SupplierList = () => {
             variant="contained" 
             color="error"
             disabled={supplierToDelete && supplierToDelete.productCount > 0}
+            sx={{ 
+              fontWeight: 500,
+              textTransform: 'none',
+              borderRadius: '8px'
+            }}
           >
             Delete
           </Button>
@@ -503,7 +927,11 @@ const SupplierList = () => {
           onClose={handleCloseSnackbar} 
           severity={snackbar.severity} 
           variant="filled"
-          sx={{ width: '100%' }}
+          sx={{ 
+            width: '100%',
+            boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+            borderRadius: '8px'
+          }}
         >
           {snackbar.message}
         </Alert>
@@ -512,4 +940,4 @@ const SupplierList = () => {
   );
 };
 
-export default SupplierList;
+export default ModernSupplierList;
