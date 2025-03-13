@@ -62,6 +62,7 @@ const TransactionList = () => {
     message: '',
     severity: 'success'
   });
+  const [dateRange, setDateRange] = useState('all');
   const [filters, setFilters] = useState({
     type: '',
     startDate: null,
@@ -103,14 +104,14 @@ const TransactionList = () => {
     if (searchTerm) {
       const lowerSearchTerm = searchTerm.toLowerCase();
       result = result.filter(transaction => 
-        (transaction.product?.name && transaction.product.name.toLowerCase().includes(lowerSearchTerm)) || 
+        (transaction.productName && transaction.productName.toLowerCase().includes(lowerSearchTerm)) || 
         (transaction.notes && transaction.notes.toLowerCase().includes(lowerSearchTerm))
       );
     }
     
     // Apply transaction type filter
     if (filters.type) {
-      result = result.filter(transaction => transaction.type === filters.type);
+      result = result.filter(transaction => transaction.transactionType === filters.type);
     }
     
     // Apply date range filters
@@ -139,15 +140,41 @@ const TransactionList = () => {
     });
   };
 
-  const handleDateChange = (name, date) => {
-    setFilters({
-      ...filters,
-      [name]: date
-    });
+  const handleDateRangeChange = (range) => {
+    setDateRange(range);
+    
+    const now = new Date();
+    let startDate = null;
+    let endDate = new Date();
+    
+    switch(range) {
+      case 'today':
+        startDate = new Date(now.setHours(0, 0, 0, 0));
+        break;
+      case 'week':
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - now.getDay());
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case 'month':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      default:
+        // 'all' - no filtering
+        startDate = null;
+        endDate = null;
+    }
+    
+    setFilters(prev => ({
+      ...prev,
+      startDate,
+      endDate
+    }));
   };
 
   const clearFilters = () => {
     setSearchTerm('');
+    setDateRange('all');
     setFilters({
       type: '',
       startDate: null,
@@ -191,24 +218,14 @@ const TransactionList = () => {
         label = 'Purchase';
         break;
       case 'SALE':
-        color = '#2ecc71';
+        color = '#e74c3c';
         icon = <MoneyIcon fontSize="small" />;
         label = 'Sale';
         break;
       case 'RETURN':
-        color = '#e74c3c';
+        color = '#2ecc71';
         icon = <TransactionIcon fontSize="small" />;
         label = 'Return';
-        break;
-      case 'ADJUSTMENT':
-        color = '#f39c12';
-        icon = <EditIcon fontSize="small" />;
-        label = 'Adjustment';
-        break;
-      case 'TRANSFER':
-        color = '#9b59b6';
-        icon = <TransactionIcon fontSize="small" />;
-        label = 'Transfer';
         break;
       default:
         color = '#95a5a6';
@@ -305,7 +322,7 @@ const TransactionList = () => {
       {/* Search and Filters */}
       <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: '12px' }}>
         <Grid container spacing={2}>
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} md={5}>
             <TextField
               fullWidth
               variant="outlined"
@@ -329,7 +346,7 @@ const TransactionList = () => {
               }}
             />
           </Grid>
-          <Grid item xs={12} md={2}>
+          <Grid item xs={12} md={3}>
             <FormControl fullWidth>
               <InputLabel id="transaction-type-label">Transaction Type</InputLabel>
               <Select
@@ -344,48 +361,28 @@ const TransactionList = () => {
                 <MenuItem value="PURCHASE">Purchase</MenuItem>
                 <MenuItem value="SALE">Sale</MenuItem>
                 <MenuItem value="RETURN">Return</MenuItem>
-                <MenuItem value="ADJUSTMENT">Adjustment</MenuItem>
-                <MenuItem value="TRANSFER">Transfer</MenuItem>
               </Select>
             </FormControl>
           </Grid>
           <Grid item xs={12} md={2}>
-            <TextField
-              fullWidth
-              label="Start Date"
-              type="date"
-              value={filters.startDate ? filters.startDate.toISOString().slice(0, 10) : ''}
-              onChange={(e) => {
-                const date = e.target.value ? new Date(e.target.value) : null;
-                handleDateChange('startDate', date);
-              }}
-              InputLabelProps={{
-                shrink: true,
-              }}
-              sx={{ 
-                '& .MuiOutlinedInput-root': { borderRadius: '8px' }
-              }}
-            />
+            <FormControl fullWidth>
+              <InputLabel id="date-filter-label">Date Range</InputLabel>
+              <Select
+                labelId="date-filter-label"
+                name="dateRange"
+                value={dateRange}
+                onChange={(e) => handleDateRangeChange(e.target.value)}
+                label="Date Range"
+                sx={{ borderRadius: '8px' }}
+              >
+                <MenuItem value="all">All Time</MenuItem>
+                <MenuItem value="today">Today</MenuItem>
+                <MenuItem value="week">This Week</MenuItem>
+                <MenuItem value="month">This Month</MenuItem>
+              </Select>
+            </FormControl>
           </Grid>
-          <Grid item xs={12} md={2}>
-            <TextField
-              fullWidth
-              label="End Date"
-              type="date"
-              value={filters.endDate ? filters.endDate.toISOString().slice(0, 10) : ''}
-              onChange={(e) => {
-                const date = e.target.value ? new Date(e.target.value) : null;
-                handleDateChange('endDate', date);
-              }}
-              InputLabelProps={{
-                shrink: true,
-              }}
-              sx={{ 
-                '& .MuiOutlinedInput-root': { borderRadius: '8px' }
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} md={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+          <Grid item xs={12} md={2} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
             <Button 
               variant="outlined" 
               onClick={clearFilters}
@@ -468,28 +465,31 @@ const TransactionList = () => {
                       </Box>
                       <Box>
                         <Typography variant="body2" fontWeight={500}>
-                          {transaction.product?.name || 'Unknown Product'}
+                          {transaction.productName || 'Unknown Product'}
                         </Typography>
                       </Box>
                     </Box>
                   </TableCell>
                   <TableCell>
-                    {getTransactionTypeChip(transaction.type)}
+                    {getTransactionTypeChip(transaction.transactionType)}
                   </TableCell>
                   <TableCell align="right">
                     <Typography 
                       variant="body2" 
                       sx={{ 
                         fontWeight: 600,
-                        color: transaction.quantity < 0 ? '#e74c3c' : '#2ecc71'
+                        color: transaction.transactionType === 'SALE' ? '#e74c3c' : '#2ecc71'
                       }}
                     >
-                      {transaction.quantity > 0 ? `+${transaction.quantity}` : transaction.quantity}
+                      {transaction.transactionType === 'SALE' ? 
+                        `-${Math.abs(transaction.quantity)}` : 
+                        `+${Math.abs(transaction.quantity)}`
+                      }
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
                     <Typography variant="body2">
-                      {formatCurrency(transaction.price)}
+                      {formatCurrency(transaction.unitPrice)}
                     </Typography>
                   </TableCell>
                   <TableCell>

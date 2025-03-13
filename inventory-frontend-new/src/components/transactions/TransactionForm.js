@@ -19,6 +19,7 @@ import {
 } from '@mui/material';
 import ProductService from '../../services/ProductService';
 import TransactionService from '../../services/TransactionService';
+import InventoryService from '../../services/InventoryService'; // Import the Inventory service
 import {
   Save as SaveIcon,
   ArrowBack as ArrowBackIcon,
@@ -43,6 +44,7 @@ const TransactionForm = () => {
   });
   
   const [products, setProducts] = useState([]);
+  const [inventory, setInventory] = useState({});
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [snackbar, setSnackbar] = useState({
@@ -58,6 +60,17 @@ const TransactionForm = () => {
         const productsResponse = await ProductService.getAllProducts();
         setProducts(productsResponse.data || []);
         
+        // Fetch all inventory items
+        const inventoryResponse = await InventoryService.getAllInventory();
+        const inventoryData = Array.isArray(inventoryResponse.data) ? inventoryResponse.data : [];
+        
+        // Create a mapping of productId -> inventory for quick lookup
+        const inventoryMap = {};
+        inventoryData.forEach(item => {
+          inventoryMap[item.productId] = item;
+        });
+        setInventory(inventoryMap);
+        
         // If in edit mode, fetch the transaction details
         if (isEditMode) {
           const transactionResponse = await TransactionService.getTransactionById(id);
@@ -66,7 +79,9 @@ const TransactionForm = () => {
           // Format the data to match state
           setTransaction({
             ...transactionData,
-            productId: transactionData.product?.id || '',
+            type: transactionData.transactionType || 'PURCHASE',
+            productId: transactionData.productId || '',
+            price: transactionData.unitPrice || '',
             transactionDate: transactionData.transactionDate ? new Date(transactionData.transactionDate) : new Date()
           });
         }
@@ -87,10 +102,20 @@ const TransactionForm = () => {
   
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setTransaction(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    if (name === 'type' && value === 'SALE' && transaction.productId) {
+      const selectedProduct = products.find(p => p.id === transaction.productId);
+      setTransaction(prev => ({
+        ...prev,
+        [name]: value,
+        price: selectedProduct?.price || prev.price
+      }));
+    } else {
+      setTransaction(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
   
   const handleProductChange = (e) => {
@@ -101,15 +126,39 @@ const TransactionForm = () => {
       ...prev,
       productId,
       product: selectedProduct,
-      price: selectedProduct?.price || prev.price
+      price: prev.type === 'SALE' ? selectedProduct?.price || prev.price : prev.price
     }));
   };
   
-  const handleDateChange = (newDate) => {
-    setTransaction(prev => ({
-      ...prev,
-      transactionDate: newDate
-    }));
+  const checkInventoryAvailability = () => {
+    // If not a sale transaction, no need to check inventory
+    if (transaction.type !== 'SALE') {
+      return true;
+    }
+    
+    const inventoryItem = inventory[transaction.productId];
+    
+    // If no inventory found for this product
+    if (!inventoryItem) {
+      setSnackbar({
+        open: true,
+        message: 'Error: No inventory record found for this product',
+        severity: 'error'
+      });
+      return false;
+    }
+    
+    // Check if there's enough quantity for the sale
+    if (inventoryItem.quantity < transaction.quantity) {
+      setSnackbar({
+        open: true,
+        message: `Error: Not enough inventory. Available: ${inventoryItem.quantity}, Requested: ${transaction.quantity}`,
+        severity: 'error'
+      });
+      return false;
+    }
+    
+    return true;
   };
   
   const handleSubmit = async (e) => {
@@ -125,14 +174,18 @@ const TransactionForm = () => {
       return;
     }
     
+    // Check inventory for sales
+    if (!checkInventoryAvailability()) {
+      return;
+    }
+    
     setLoading(true);
     
     try {
       const transactionData = {
         ...transaction,
-        // Format price as number
-        price: transaction.price ? parseFloat(transaction.price) : null,
-        // Format quantity as number
+        transactionType: transaction.type,
+        unitPrice: transaction.price ? parseFloat(transaction.price) : null,
         quantity: parseInt(transaction.quantity, 10)
       };
       
@@ -264,7 +317,8 @@ const TransactionForm = () => {
                   </MenuItem>
                   {products.map(product => (
                     <MenuItem key={product.id} value={product.id}>
-                      {product.name} ({product.sku || 'No SKU'})
+                      {product.name} ({product.sku || 'No SKU'}) 
+                      {inventory[product.id] ? ` - Available: ${inventory[product.id].quantity}` : ''}
                     </MenuItem>
                   ))}
                 </Select>
@@ -292,8 +346,6 @@ const TransactionForm = () => {
                   <MenuItem value="PURCHASE">Purchase</MenuItem>
                   <MenuItem value="SALE">Sale</MenuItem>
                   <MenuItem value="RETURN">Return</MenuItem>
-                  <MenuItem value="ADJUSTMENT">Adjustment</MenuItem>
-                  <MenuItem value="TRANSFER">Transfer</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -313,6 +365,11 @@ const TransactionForm = () => {
                     borderRadius: '8px'
                   }
                 }}
+                helperText={
+                  transaction.type === 'SALE' && transaction.productId && inventory[transaction.productId] 
+                    ? `Available: ${inventory[transaction.productId].quantity}` 
+                    : ''
+                }
               />
             </Grid>
             
@@ -324,6 +381,7 @@ const TransactionForm = () => {
                 type="number"
                 value={transaction.price}
                 onChange={handleChange}
+                disabled={transaction.type === 'SALE'}
                 inputProps={{ step: "0.01", min: 0 }}
                 sx={{ 
                   '& .MuiOutlinedInput-root': {
@@ -337,6 +395,7 @@ const TransactionForm = () => {
                     </InputAdornment>
                   ),
                 }}
+                helperText={transaction.type === 'SALE' ? "Price is automatically set for sales" : ""}
               />
             </Grid>
             
