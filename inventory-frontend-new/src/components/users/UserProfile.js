@@ -16,7 +16,11 @@ import {
   Tab,
   Tabs,
   InputAdornment,
-  CircularProgress
+  CircularProgress,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -68,6 +72,9 @@ const UserProfile = () => {
     severity: 'success'
   });
   
+  // Valid roles for the dropdown
+  const validRoles = ['ADMIN', 'MANAGER', 'EMPLOYEE'];
+  
   useEffect(() => {
     fetchUserDetails();
   }, []);
@@ -81,12 +88,17 @@ const UserProfile = () => {
           username: currentUser.username || currentUser.name || '',
           email: currentUser.email || '',
           fullName: currentUser.name || '',
-          position: currentUser.role || '',
+          position: currentUser.role || '',  // Make sure we capture the role
           phoneNumber: '',
           department: '',
           joinDate: new Date().toISOString(),
           lastLogin: new Date().toISOString()
         };
+        
+        // Log the user data to debug
+        console.log("Current user data:", currentUser);
+        console.log("Using role:", userProfileData.position);
+        
         setUserDetails(userProfileData);
       } else {
         // If no current user is available, redirect to login
@@ -128,17 +140,44 @@ const UserProfile = () => {
     }));
   };
   
+  const validatePassword = (password) => {
+    // At least 8 characters long
+    if (password.length < 8) {
+      return { valid: false, message: 'Password must be at least 8 characters long' };
+    }
+    
+    // Include at least one uppercase letter
+    if (!/[A-Z]/.test(password)) {
+      return { valid: false, message: 'Password must include at least one uppercase letter' };
+    }
+    
+    // Include at least one number
+    if (!/[0-9]/.test(password)) {
+      return { valid: false, message: 'Password must include at least one number' };
+    }
+    
+    // Include at least one special character
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      return { valid: false, message: 'Password must include at least one special character' };
+    }
+    
+    return { valid: true };
+  };
+  
   const handleUpdateProfile = async () => {
     setLoading(true);
     try {
+      // Create payload without including the role if it's empty
+      const updateData = {
+        name: userDetails.fullName,
+        email: userDetails.email,
+        role: userDetails.position // Position is now a valid role from the dropdown
+      };
+      
       // Call the backend API to update the user profile
       await axios.put(
         `http://localhost:8080/api/users/${currentUser.id}`, 
-        {
-          name: userDetails.fullName,
-          email: userDetails.email,
-          role: userDetails.position.toUpperCase()
-        },
+        updateData,
         { headers: authHeader() }
       );
       
@@ -171,10 +210,12 @@ const UserProfile = () => {
       return;
     }
     
-    if (passwordData.newPassword.length < 8) {
+    // Validate password complexity
+    const validation = validatePassword(passwordData.newPassword);
+    if (!validation.valid) {
       setSnackbar({
         open: true,
-        message: 'Password must be at least 8 characters',
+        message: validation.message,
         severity: 'error'
       });
       return;
@@ -182,15 +223,18 @@ const UserProfile = () => {
     
     setLoading(true);
     try {
+      // Create payload with required fields
+      const updatePayload = {
+        name: userDetails.fullName,
+        email: userDetails.email,
+        password: passwordData.newPassword,
+        role: userDetails.position  // Use the current role
+      };
+      
       // Call the backend API to change the password
       await axios.put(
         `http://localhost:8080/api/users/${currentUser.id}`, 
-        {
-          name: userDetails.fullName,
-          email: userDetails.email,
-          password: passwordData.newPassword,
-          role: currentUser.role
-        },
+        updatePayload,
         { headers: authHeader() }
       );
       
@@ -409,20 +453,24 @@ const UserProfile = () => {
                       />
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Position"
-                        name="position"
-                        value={userDetails.position}
-                        onChange={handleInputChange}
-                        disabled={!isEditing}
-                        sx={{ 
-                          mb: 2,
-                          '& .MuiOutlinedInput-root': {
-                            borderRadius: '8px'
-                          }
-                        }}
-                      />
+                      {/* Replace TextField with Select for the role/position */}
+                      <FormControl fullWidth disabled={!isEditing} sx={{ mb: 2 }}>
+                        <InputLabel id="role-select-label">Role</InputLabel>
+                        <Select
+                          labelId="role-select-label"
+                          name="position"
+                          value={userDetails.position}
+                          onChange={handleInputChange}
+                          label="Role"
+                          sx={{ borderRadius: '8px' }}
+                        >
+                          {validRoles.map((role) => (
+                            <MenuItem key={role} value={role}>
+                              {role}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <TextField
@@ -719,4 +767,3 @@ const UserProfile = () => {
 };
 
 export default UserProfile;
-

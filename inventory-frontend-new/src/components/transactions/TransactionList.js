@@ -37,6 +37,7 @@ import {
   AttachMoney as MoneyIcon,
   ImportExport as TransactionIcon
 } from '@mui/icons-material';
+import ReceiptIcon from '@mui/icons-material/Receipt';
 import { Link, useNavigate } from 'react-router-dom';
 import TransactionService from '../../services/TransactionService';
 import format from 'date-fns/format';
@@ -505,57 +506,59 @@ const TransactionList = () => {
                       {transaction.notes || '-'}
                     </Typography>
                   </TableCell>
-                  <TableCell align="center">
-                    <Box>
-                      <Tooltip title="View Details">
-                        <IconButton 
-                          size="small" 
-                          color="primary" 
-                          component={Link}
-                          to={`/transactions/${transaction.id}`}
-                          sx={{ 
-                            mx: 0.5,
-                            '&:hover': {
-                              backgroundColor: 'rgba(52, 152, 219, 0.1)'
-                            }
-                          }}
-                        >
-                          <SearchIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Edit">
-                        <IconButton 
-                          size="small" 
-                          color="primary" 
-                          component={Link}
-                          to={`/transactions/${transaction.id}/edit`}
-                          sx={{ 
-                            mx: 0.5,
-                            '&:hover': {
-                              backgroundColor: 'rgba(52, 152, 219, 0.1)'
-                            }
-                          }}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton 
-                          size="small" 
-                          color="error"
-                          onClick={() => handleDeleteTransaction(transaction.id)}
-                          sx={{ 
-                            mx: 0.5,
-                            '&:hover': {
-                              backgroundColor: 'rgba(231, 76, 60, 0.1)'
-                            }
-                          }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  </TableCell>
+  
+<TableCell align="center">
+  <Box>
+    <Tooltip title="View Invoice">
+      <IconButton 
+        size="small" 
+        color="info" 
+        component={Link}
+        to={`/transactions/${transaction.id}`}
+        sx={{ 
+          mx: 0.5,
+          color: '#3498db',
+          '&:hover': {
+            backgroundColor: 'rgba(52, 152, 219, 0.1)'
+          }
+        }}
+      >
+        <ReceiptIcon fontSize="small" />
+      </IconButton>
+    </Tooltip>
+    <Tooltip title="Edit">
+      <IconButton 
+        size="small" 
+        color="primary" 
+        component={Link}
+        to={`/transactions/${transaction.id}/edit`}
+        sx={{ 
+          mx: 0.5,
+          '&:hover': {
+            backgroundColor: 'rgba(52, 152, 219, 0.1)'
+          }
+        }}
+      >
+        <EditIcon fontSize="small" />
+      </IconButton>
+    </Tooltip>
+    <Tooltip title="Delete">
+      <IconButton 
+        size="small" 
+        color="error"
+        onClick={() => handleDeleteTransaction(transaction.id)}
+        sx={{ 
+          mx: 0.5,
+          '&:hover': {
+            backgroundColor: 'rgba(231, 76, 60, 0.1)'
+          }
+        }}
+      >
+        <DeleteIcon fontSize="small" />
+      </IconButton>
+    </Tooltip>
+  </Box>
+</TableCell>
                 </TableRow>
               ))
             ) : (

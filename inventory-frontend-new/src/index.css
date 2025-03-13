@@ -11,3 +11,34 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Add this to your index.css or create a new CSS file and import it */
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  .invoice-container,
+  .invoice-container * {
+    visibility: visible;
+  }
+  
+  .invoice-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background-color: white !important;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  /* Ensure background colors and gradients print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
