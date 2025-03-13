@@ -105,6 +105,7 @@ const Navbar = () => {
     { text: 'Categories', icon: <CategoryIcon />, path: '/categories' },
     { text: 'Suppliers', icon: <LocalShippingIcon />, path: '/suppliers' },
     { text: 'Inventory', icon: <WarehouseIcon />, path: '/inventory' },
+    { text: 'Transactions', icon: <ReceiptIcon />, path: '/transactions' },
   ];
   
   // Add Users management for admins

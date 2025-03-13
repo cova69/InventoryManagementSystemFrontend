@@ -14,6 +14,9 @@ import UserProfile from './components/users/UserProfile'; // Import the UserProf
 import Unauthorized from './components/common/Unauthorized';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import AuthTest from './components/auth/AuthTest';
+import TransactionList from './components/transactions/TransactionList';
+import TransactionDetail from './components/transactions/TransactionDetail';
+import TransactionForm from './components/transactions/TransactionForm';
 import { AuthProvider } from './context/AuthContext';
 import './App.css';
 
@@ -45,6 +48,71 @@ function App() {
                       <Navbar />
                       <Container style={{ marginTop: '20px' }}>
                         <Dashboard />
+                      </Container>
+                    </>
+                  }
+                />
+              }
+            />
+            
+            {/* Transaction routes */}
+            <Route
+              path="/transactions"
+              element={
+                <ProtectedRoute
+                  element={
+                    <>
+                      <Navbar />
+                      <Container style={{ marginTop: '20px' }}>
+                        <TransactionList />
+                      </Container>
+                    </>
+                  }
+                />
+              }
+            />
+            
+            <Route
+              path="/transactions/new"
+              element={
+                <ProtectedRoute
+                  element={
+                    <>
+                      <Navbar />
+                      <Container style={{ marginTop: '20px' }}>
+                        <TransactionForm />
+                      </Container>
+                    </>
+                  }
+                />
+              }
+            />
+            
+            <Route
+              path="/transactions/:id"
+              element={
+                <ProtectedRoute
+                  element={
+                    <>
+                      <Navbar />
+                      <Container style={{ marginTop: '20px' }}>
+                        <TransactionDetail />
+                      </Container>
+                    </>
+                  }
+                />
+              }
+            />
+            
+            <Route
+              path="/transactions/:id/edit"
+              element={
+                <ProtectedRoute
+                  element={
+                    <>
+                      <Navbar />
+                      <Container style={{ marginTop: '20px' }}>
+                        <TransactionForm />
                       </Container>
                     </>
                   }
