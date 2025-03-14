@@ -16,11 +16,7 @@ import {
   Tab,
   Tabs,
   InputAdornment,
-  CircularProgress,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel
+  CircularProgress
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -72,9 +68,6 @@ const UserProfile = () => {
     severity: 'success'
   });
   
-  // Valid roles for the dropdown
-  const validRoles = ['ADMIN', 'MANAGER', 'EMPLOYEE'];
-  
   useEffect(() => {
     fetchUserDetails();
   }, []);
@@ -84,22 +77,54 @@ const UserProfile = () => {
     try {
       // Get the user profile from the auth context
       if (currentUser) {
-        const userProfileData = {
-          username: currentUser.username || currentUser.name || '',
-          email: currentUser.email || '',
-          fullName: currentUser.name || '',
-          position: currentUser.role || '',  // Make sure we capture the role
-          phoneNumber: '',
-          department: '',
-          joinDate: new Date().toISOString(),
-          lastLogin: new Date().toISOString()
-        };
-        
-        // Log the user data to debug
-        console.log("Current user data:", currentUser);
-        console.log("Using role:", userProfileData.position);
-        
-        setUserDetails(userProfileData);
+        // Try to fetch user details from API first for more accurate information
+        try {
+          const response = await axios.get(
+            `http://localhost:8080/api/users/${currentUser.id}`,
+            { headers: authHeader() }
+          );
+          
+          const userData = response.data;
+          console.log("User data from API:", userData);
+          
+          const userProfileData = {
+            username: userData.name || currentUser.username || currentUser.name || '',
+            email: userData.email || currentUser.email || '',
+            fullName: userData.name || currentUser.name || '',
+            position: userData.role || currentUser.role || '',
+            phoneNumber: '',
+            department: '',
+            joinDate: new Date().toISOString(),
+            lastLogin: new Date().toISOString()
+          };
+          
+          console.log("Using role from API:", userProfileData.position);
+          setUserDetails(userProfileData);
+        } catch (apiError) {
+          console.log("Couldn't fetch from API, using local data:", apiError);
+          // Fallback to using data from auth context
+          const userProfileData = {
+            username: currentUser.username || currentUser.name || '',
+            email: currentUser.email || '',
+            fullName: currentUser.name || '',
+            position: currentUser.role || '',
+            phoneNumber: '',
+            department: '',
+            joinDate: new Date().toISOString(),
+            lastLogin: new Date().toISOString()
+          };
+          
+          // Explicitly check for role in different locations in the currentUser object
+          if (!userProfileData.position && currentUser.roles && currentUser.roles.length > 0) {
+            userProfileData.position = currentUser.roles[0].replace('ROLE_', '');
+          }
+          
+          // Log the user data for debugging
+          console.log("Current user data:", currentUser);
+          console.log("Using role from local data:", userProfileData.position);
+          
+          setUserDetails(userProfileData);
+        }
       } else {
         // If no current user is available, redirect to login
         navigate('/login');
@@ -167,11 +192,11 @@ const UserProfile = () => {
   const handleUpdateProfile = async () => {
     setLoading(true);
     try {
-      // Create payload without including the role if it's empty
+      // Create payload without including the role - role is now intentionally omitted
       const updateData = {
         name: userDetails.fullName,
-        email: userDetails.email,
-        role: userDetails.position // Position is now a valid role from the dropdown
+        email: userDetails.email
+        // Role is intentionally omitted to prevent changes
       };
       
       // Call the backend API to update the user profile
@@ -453,24 +478,28 @@ const UserProfile = () => {
                       />
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      {/* Replace TextField with Select for the role/position */}
-                      <FormControl fullWidth disabled={!isEditing} sx={{ mb: 2 }}>
-                        <InputLabel id="role-select-label">Role</InputLabel>
-                        <Select
-                          labelId="role-select-label"
-                          name="position"
-                          value={userDetails.position}
-                          onChange={handleInputChange}
-                          label="Role"
-                          sx={{ borderRadius: '8px' }}
-                        >
-                          {validRoles.map((role) => (
-                            <MenuItem key={role} value={role}>
-                              {role}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
+                      {/* Replaced Select with read-only TextField for role */}
+                      <TextField
+                        fullWidth
+                        label="Role"
+                        name="position"
+                        value={userDetails.position || ''}
+                        disabled={true}
+                        sx={{ 
+                          mb: 2,
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: '8px'
+                          }
+                        }}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <WorkIcon sx={{ color: 'rgba(52, 152, 219, 0.6)' }} />
+                            </InputAdornment>
+                          ),
+                          readOnly: true
+                        }}
+                      />
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <TextField
@@ -509,7 +538,7 @@ const UserProfile = () => {
                   {isEditing && (
                     <Box sx={{ mt: 2 }}>
                       <Alert severity="info" sx={{ borderRadius: '8px' }}>
-                        Note: Username and email cannot be changed. Please contact an administrator if you need to update these fields.
+                        Note: Username, email, and role cannot be changed. Please contact an administrator if you need to update these fields.
                       </Alert>
                     </Box>
                   )}
@@ -664,83 +693,7 @@ const UserProfile = () => {
         </Grid>
       </Grid>
       
-      {/* Profile header with avatar */}
-      <Box 
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          mb: 4
-        }}
-      >
-        <Avatar 
-          sx={{ 
-            width: 100,
-            height: 100,
-            bgcolor: 'rgba(52, 152, 219, 0.8)',
-            border: '4px solid rgba(52, 152, 219, 0.3)',
-            fontSize: '2.5rem',
-            fontWeight: 'bold',
-            mb: 2,
-            boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-          }}
-        >
-          {userDetails.username?.charAt(0).toUpperCase() || 'U'}
-        </Avatar>
-        <Typography 
-          variant="h5" 
-          sx={{ 
-            fontWeight: 'bold',
-            fontFamily: "'Montserrat', sans-serif"
-          }}
-        >
-          {userDetails.fullName}
-        </Typography>
-        <Typography 
-          variant="body1" 
-          color="text.secondary"
-          sx={{ 
-            mt: 0.5,
-            fontFamily: "'Roboto', sans-serif"
-          }}
-        >
-          {userDetails.username} • {userDetails.position}
-        </Typography>
-        <Box
-          sx={{
-            display: 'flex',
-            mt: 2,
-            gap: 2
-          }}
-        >
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center',
-            backgroundColor: 'rgba(52, 152, 219, 0.05)',
-            p: 1,
-            px: 2,
-            borderRadius: '8px'
-          }}>
-            <EmailIcon sx={{ mr: 1, color: '#3498db', fontSize: '0.9rem' }} />
-            <Typography variant="body2">
-              {userDetails.email}
-            </Typography>
-          </Box>
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center',
-            backgroundColor: 'rgba(52, 152, 219, 0.05)',
-            p: 1,
-            px: 2,
-            borderRadius: '8px'
-          }}>
-            <PhoneIcon sx={{ mr: 1, color: '#3498db', fontSize: '0.9rem' }} />
-            <Typography variant="body2">
-              {userDetails.phoneNumber}
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
+      {/* Profile header with avatar removed */}
       
       {/* Snackbar for notifications */}
       <Snackbar
