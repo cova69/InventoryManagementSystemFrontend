@@ -295,18 +295,30 @@ const ResponsiveDashboard = () => {
     }
   };
 
-  // Calculate percentage change for stats cards
-  const calculateGrowth = (current, previous) => {
-    if (previous === 0) return { percentage: 100, positive: true };
-    
-    const change = current - previous;
-    const percentage = Math.abs(Math.round((change / previous) * 100));
-    
-    return {
-      percentage: percentage || 0,
-      positive: change >= 0
-    };
+
+// Calculate percentage change for stats cards
+const calculateGrowth = (current, previous) => {
+  // Handle edge cases
+  if (previous === 0 && current === 0) {
+    return { percentage: 0, positive: true };
+  }
+  
+  if (previous === 0) {
+    return { percentage: current > 0 ? 100 : 0, positive: true };
+  }
+  
+  const change = current - previous;
+  const percentage = Math.abs(Math.round((change / previous) * 100));
+  
+  // For low stock items, decrease is positive (improvement)
+  const isLowStockMetric = current === stats.lowStockCount && previous === stats.previousLowStockCount;
+  const positive = isLowStockMetric ? change <= 0 : change >= 0;
+  
+  return {
+    percentage: percentage || 0,
+    positive: positive
   };
+};
 
   if (loading && Object.values(stats).every(val => val === 0 || (Array.isArray(val) && val.length === 0))) {
     return (

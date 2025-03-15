@@ -10,7 +10,7 @@ import InventoryList from './components/inventory/InventoryList';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import UserList from './components/users/UserList';
-import UserProfile from './components/users/UserProfile'; // Import the UserProfile component
+import UserProfile from './components/users/UserProfile'; 
 import Unauthorized from './components/common/Unauthorized';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import AuthTest from './components/auth/AuthTest';

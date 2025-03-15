@@ -38,6 +38,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import SettingsIcon from '@mui/icons-material/Settings';
 import SearchIcon from '@mui/icons-material/Search';
 import { AuthContext } from '../../context/AuthContext';
+import NotificationsSystem from '../../components/notifications/NotificationsSystem'; // Import the new component
 
 const Navbar = () => {
   const theme = useTheme();
@@ -50,7 +51,6 @@ const Navbar = () => {
   const [productsMenuAnchor, setProductsMenuAnchor] = useState(null);
   const [reportsMenuAnchor, setReportsMenuAnchor] = useState(null);
   const [userMenuAnchor, setUserMenuAnchor] = useState(null);
-  const [notificationsAnchor, setNotificationsAnchor] = useState(null);
 
   const isActive = (path) => location.pathname === path;
 
@@ -83,14 +83,6 @@ const Navbar = () => {
 
   const handleUserMenuClose = () => {
     setUserMenuAnchor(null);
-  };
-
-  const handleNotificationsOpen = (event) => {
-    setNotificationsAnchor(event.currentTarget);
-  };
-
-  const handleNotificationsClose = () => {
-    setNotificationsAnchor(null);
   };
   
   const handleLogout = () => {
@@ -359,17 +351,10 @@ const Navbar = () => {
           {/* Right section - User & notifications */}
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             {/* Notifications */}
-            <Tooltip title="Notifications">
-              <IconButton 
-                color="inherit" 
-                onClick={handleNotificationsOpen}
-                sx={{ mx: 0.5 }}
-              >
-                <Badge badgeContent={3} color="error">
-                  <NotificationsIcon />
-                </Badge>
-              </IconButton>
-            </Tooltip>
+            <NotificationsSystem 
+              lowStockItems={[]} // You'll need to fetch this data in Navbar or pass it from parent
+              buttonStyle={{ mx: 0.5 }}
+            />
             
             {/* User profile */}
             <Box 
@@ -434,114 +419,6 @@ const Navbar = () => {
       >
         {drawer}
       </Drawer>
-
-      {/* Notifications Menu */}
-      <Menu
-        anchorEl={notificationsAnchor}
-        open={Boolean(notificationsAnchor)}
-        onClose={handleNotificationsClose}
-        PaperProps={{
-          elevation: 3,
-          sx: { 
-            mt: 1.5, 
-            borderRadius: '12px',
-            width: 320,
-            overflow: 'visible',
-            '&:before': {
-              content: '""',
-              position: 'absolute',
-              top: -6,
-              right: 14,
-              width: 12,
-              height: 12,
-              bgcolor: 'background.paper',
-              transform: 'rotate(45deg)',
-              zIndex: 0,
-            },
-          }
-        }}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-      >
-        <Box sx={{ p: 2 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-            Notifications
-          </Typography>
-          <Divider sx={{ mb: 2 }} />
-          
-          {/* Notification Items */}
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              p: 1.5,
-              mb: 1,
-              bgcolor: 'rgba(231, 76, 60, 0.1)',
-              borderRadius: '8px',
-              border: '1px solid rgba(231, 76, 60, 0.2)'
-            }}
-          >
-            <Avatar sx={{ bgcolor: 'rgba(231, 76, 60, 0.2)', color: '#e74c3c' }}>
-              <WarehouseIcon fontSize="small" />
-            </Avatar>
-            <Box sx={{ ml: 2 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                Low stock alert
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                5 items need reordering
-              </Typography>
-            </Box>
-          </Box>
-          
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              p: 1.5,
-              mb: 1,
-              bgcolor: 'rgba(46, 204, 113, 0.1)',
-              borderRadius: '8px',
-              border: '1px solid rgba(46, 204, 113, 0.2)'
-            }}
-          >
-            <Avatar sx={{ bgcolor: 'rgba(46, 204, 113, 0.2)', color: '#2ecc71' }}>
-              <ShoppingCartIcon fontSize="small" />
-            </Avatar>
-            <Box sx={{ ml: 2 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                New products added
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                3 new products were added today
-              </Typography>
-            </Box>
-          </Box>
-          
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              p: 1.5,
-              bgcolor: 'rgba(52, 152, 219, 0.1)',
-              borderRadius: '8px',
-              border: '1px solid rgba(52, 152, 219, 0.2)'
-            }}
-          >
-            <Avatar sx={{ bgcolor: 'rgba(52, 152, 219, 0.2)', color: '#3498db' }}>
-              <LocalShippingIcon fontSize="small" />
-            </Avatar>
-            <Box sx={{ ml: 2 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                Supplier update
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                ABC Electronics updated their catalog
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
-      </Menu>
       
       {/* User Profile Menu */}
       <Menu
