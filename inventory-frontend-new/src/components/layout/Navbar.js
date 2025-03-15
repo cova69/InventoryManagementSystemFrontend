@@ -16,10 +16,7 @@ import {
   useTheme, 
   useMediaQuery, 
   Avatar, 
-  Divider,
-  Tooltip,
-  Badge,
-  Paper
+  Divider
 } from '@mui/material';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import InventoryIcon from '@mui/icons-material/Inventory';
@@ -34,11 +31,8 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
 import PeopleIcon from '@mui/icons-material/People';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import SettingsIcon from '@mui/icons-material/Settings';
-import SearchIcon from '@mui/icons-material/Search';
 import { AuthContext } from '../../context/AuthContext';
-import NotificationsSystem from '../../components/notifications/NotificationsSystem'; // Import the new component
+import NotificationsSystem from '../../components/notifications/NotificationsSystem';
 
 const Navbar = () => {
   const theme = useTheme();
@@ -48,8 +42,6 @@ const Navbar = () => {
   const { currentUser, logout, isAdmin } = useContext(AuthContext);
   
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [productsMenuAnchor, setProductsMenuAnchor] = useState(null);
-  const [reportsMenuAnchor, setReportsMenuAnchor] = useState(null);
   const [userMenuAnchor, setUserMenuAnchor] = useState(null);
 
   const isActive = (path) => location.pathname === path;
@@ -59,22 +51,6 @@ const Navbar = () => {
       return;
     }
     setDrawerOpen(open);
-  };
-
-  const handleProductsMenuOpen = (event) => {
-    setProductsMenuAnchor(event.currentTarget);
-  };
-
-  const handleProductsMenuClose = () => {
-    setProductsMenuAnchor(null);
-  };
-
-  const handleReportsMenuOpen = (event) => {
-    setReportsMenuAnchor(event.currentTarget);
-  };
-
-  const handleReportsMenuClose = () => {
-    setReportsMenuAnchor(null);
   };
   
   const handleUserMenuOpen = (event) => {
@@ -351,10 +327,7 @@ const Navbar = () => {
           {/* Right section - User & notifications */}
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             {/* Notifications */}
-            <NotificationsSystem 
-              lowStockItems={[]} // You'll need to fetch this data in Navbar or pass it from parent
-              buttonStyle={{ mx: 0.5 }}
-            />
+            <NotificationsSystem buttonStyle={{ mx: 0.5 }} />
             
             {/* User profile */}
             <Box 

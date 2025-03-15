@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   IconButton,
   Badge,
@@ -11,7 +11,8 @@ import {
   Button,
   ListItemIcon,
   ListItemText,
-  Tooltip
+  Tooltip,
+  CircularProgress
 } from '@mui/material';
 
 import {
@@ -19,108 +20,147 @@ import {
   Warning as WarningIcon,
   ShoppingCart as ShoppingCartIcon,
   LocalShipping as LocalShippingIcon,
-  Warehouse as WarehouseIcon
-} from '@mui/icons-material'; // Changed from '@mui/material' to '@mui/icons-material'
+  Category as CategoryIcon,
+  Person as PersonIcon,
+  Delete as DeleteIcon
+} from '@mui/icons-material';
 
-const NotificationsSystem = ({ lowStockItems, buttonStyle }) => {
+import { formatDistance } from 'date-fns';
+import NotificationService from '../../services/NotificationService';
+import { AuthContext } from '../../context/AuthContext';
+
+const NotificationsSystem = ({ buttonStyle }) => {
+  const { currentUser } = useContext(AuthContext);
   const [notifications, setNotifications] = useState([]);
   const [notificationAnchor, setNotificationAnchor] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [refreshInterval, setRefreshInterval] = useState(null);
 
-  // Generate notifications based on props
+  // Fetch notifications on component mount and set up refresh interval
   useEffect(() => {
-    const newNotifications = [];
+    fetchNotifications();
     
-    // Add low stock notifications
-    if (Array.isArray(lowStockItems) && lowStockItems.length > 0) {
-      // Group notification if there are multiple low stock items
-      if (lowStockItems.length > 1) {
-        newNotifications.push({
-          id: 'low-stock-group',
-          type: 'warning',
-          icon: <WarehouseIcon fontSize="small" />,
-          avatarColor: 'rgba(231, 76, 60, 0.2)',
-          iconColor: '#e74c3c',
-          bgColor: 'rgba(231, 76, 60, 0.1)',
-          borderColor: 'rgba(231, 76, 60, 0.2)',
-          title: 'Low stock alert',
-          message: `${lowStockItems.length} items need reordering`,
-          time: new Date().toISOString(),
-          read: false
-        });
-      } else {
-        // Single item notification
-        const item = lowStockItems[0];
-        newNotifications.push({
-          id: `low-stock-${item.id || item.productId}`,
-          type: 'warning',
-          icon: <WarehouseIcon fontSize="small" />,
-          avatarColor: 'rgba(231, 76, 60, 0.2)',
-          iconColor: '#e74c3c',
-          bgColor: 'rgba(231, 76, 60, 0.1)',
-          borderColor: 'rgba(231, 76, 60, 0.2)',
-          title: 'Low stock alert',
-          message: `${item.productName} is low in stock (${item.quantity} remaining)`,
-          time: new Date().toISOString(),
-          read: false
-        });
+    // Set up auto-refresh interval (every 1 minute)
+    const interval = setInterval(() => {
+      fetchUnreadCount();
+    }, 60000);
+    
+    setRefreshInterval(interval);
+    
+    // Clean up interval on component unmount
+    return () => {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
       }
+    };
+  }, []);
+
+  const fetchNotifications = async () => {
+    if (!currentUser) return;
+    
+    setLoading(true);
+    try {
+      const response = await NotificationService.getUserNotifications();
+      setNotifications(response.data || []);
+      setUnreadCount(response.data.filter(n => !n.read).length || 0);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      // Fallback to empty array on error
+      setNotifications([]);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const fetchUnreadCount = async () => {
+    if (!currentUser) return;
     
-    // Add sample notifications to make it look more complete
-    // These can be replaced with real data from your backend later
-    newNotifications.push({
-      id: 'new-products',
-      type: 'info',
-      icon: <ShoppingCartIcon fontSize="small" />,
-      avatarColor: 'rgba(46, 204, 113, 0.2)',
-      iconColor: '#2ecc71',
-      bgColor: 'rgba(46, 204, 113, 0.1)',
-      borderColor: 'rgba(46, 204, 113, 0.2)',
-      title: 'New products added',
-      message: 'New items were added to inventory today',
-      time: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-      read: false
-    });
-    
-    newNotifications.push({
-      id: 'supplier-update',
-      type: 'info',
-      icon: <LocalShippingIcon fontSize="small" />,
-      avatarColor: 'rgba(52, 152, 219, 0.2)',
-      iconColor: '#3498db',
-      bgColor: 'rgba(52, 152, 219, 0.1)',
-      borderColor: 'rgba(52, 152, 219, 0.2)',
-      title: 'Supplier update',
-      message: 'New supplier catalog available',
-      time: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-      read: true
-    });
-    
-    setNotifications(newNotifications);
-    setUnreadCount(newNotifications.filter(n => !n.read).length);
-  }, [lowStockItems]);
+    try {
+      const response = await NotificationService.getUnreadCount();
+      setUnreadCount(response.data.count || 0);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  };
 
   const handleNotificationOpen = (event) => {
     setNotificationAnchor(event.currentTarget);
+    fetchNotifications(); // Refresh notifications when opening the menu
   };
 
   const handleNotificationClose = () => {
     setNotificationAnchor(null);
   };
 
-  const handleMarkAllRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
-    setUnreadCount(0);
+  const handleMarkAllRead = async () => {
+    try {
+      await NotificationService.markAllAsRead();
+      // Update local state
+      setNotifications(notifications.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
   };
 
-  const handleNotificationClick = (notificationId) => {
-    // Mark individual notification as read
-    setNotifications(notifications.map(n => 
-      n.id === notificationId ? { ...n, read: true } : n
-    ));
-    setUnreadCount(prev => Math.max(0, prev - 1));
-    handleNotificationClose();
+  const handleNotificationClick = async (notificationId) => {
+    try {
+      await NotificationService.markAsRead(notificationId);
+      // Update local state
+      setNotifications(notifications.map(n => 
+        n.id === notificationId ? { ...n, read: true } : n
+      ));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+  
+  const handleDeleteNotification = async (e, notificationId) => {
+    e.stopPropagation(); // Prevent triggering parent click handler
+    
+    try {
+      await NotificationService.deleteNotification(notificationId);
+      // Remove from local state
+      setNotifications(notifications.filter(n => n.id !== notificationId));
+      // Update unread count if needed
+      const deletedNotification = notifications.find(n => n.id === notificationId);
+      if (deletedNotification && !deletedNotification.read) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    }
+  };
+  
+  // Helper function to get icon component based on icon name from backend
+  const getIconComponent = (iconName) => {
+    switch (iconName) {
+      case 'ShoppingCart':
+        return <ShoppingCartIcon fontSize="small" />;
+      case 'Category':
+        return <CategoryIcon fontSize="small" />;
+      case 'LocalShipping':
+        return <LocalShippingIcon fontSize="small" />;
+      case 'Person':
+        return <PersonIcon fontSize="small" />;
+      case 'Warning':
+        return <WarningIcon fontSize="small" />;
+      default:
+        return <NotificationsIcon fontSize="small" />;
+    }
+  };
+  
+  // Format relative time (e.g., "5 minutes ago")
+  const formatRelativeTime = (dateString) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return formatDistance(date, new Date(), { addSuffix: true });
+    } catch (e) {
+      return dateString;
+    }
   };
 
   return (
@@ -146,6 +186,7 @@ const NotificationsSystem = ({ lowStockItems, buttonStyle }) => {
             mt: 1.5, 
             borderRadius: '12px',
             width: 320,
+            maxHeight: 450,
             overflow: 'visible',
             '&:before': {
               content: '""',
@@ -181,43 +222,100 @@ const NotificationsSystem = ({ lowStockItems, buttonStyle }) => {
           <Divider sx={{ mb: 2 }} />
           
           {/* Notification Items */}
-          {notifications.length === 0 ? (
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : notifications.length === 0 ? (
             <Box sx={{ p: 2, textAlign: 'center' }}>
               <Typography color="text.secondary">No notifications</Typography>
             </Box>
           ) : (
-            notifications.map(notification => (
-              <Box 
-                key={notification.id}
-                onClick={() => handleNotificationClick(notification.id)}
-                sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  p: 1.5,
-                  mb: 1,
-                  bgcolor: notification.bgColor,
-                  borderRadius: '8px',
-                  border: `1px solid ${notification.borderColor}`,
-                  cursor: 'pointer',
-                  opacity: notification.read ? 0.7 : 1,
-                  '&:hover': {
-                    opacity: 0.9
-                  }
-                }}
-              >
-                <Avatar sx={{ bgcolor: notification.avatarColor, color: notification.iconColor }}>
-                  {notification.icon}
-                </Avatar>
-                <Box sx={{ ml: 2 }}>
-                  <Typography variant="body2" sx={{ fontWeight: notification.read ? 400 : 600 }}>
-                    {notification.title}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {notification.message}
-                  </Typography>
+            <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
+              {notifications.map(notification => (
+                <Box 
+                  key={notification.id}
+                  onClick={() => handleNotificationClick(notification.id)}
+                  sx={{ 
+                    display: 'flex', 
+                    alignItems: 'flex-start', 
+                    p: 1.5,
+                    mb: 1,
+                    bgcolor: notification.bgColor || 'rgba(0, 0, 0, 0.04)',
+                    borderRadius: '8px',
+                    border: `1px solid ${notification.borderColor || 'transparent'}`,
+                    cursor: 'pointer',
+                    opacity: notification.read ? 0.7 : 1,
+                    '&:hover': {
+                      opacity: 0.9
+                    },
+                    position: 'relative'
+                  }}
+                >
+                  <Avatar 
+                    sx={{ 
+                      bgcolor: notification.avatarColor || 'rgba(0, 0, 0, 0.08)', 
+                      color: notification.iconColor || 'inherit',
+                      mr: 1.5
+                    }}
+                  >
+                    {getIconComponent(notification.iconName)}
+                  </Avatar>
+                  <Box sx={{ width: 'calc(100% - 55px)' }}>
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        fontWeight: notification.read ? 400 : 600,
+                        mb: 0.5
+                      }}
+                    >
+                      {notification.title}
+                    </Typography>
+                    <Typography 
+                      variant="caption" 
+                      color="text.secondary"
+                      sx={{
+                        display: 'block',
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word'
+                      }}
+                    >
+                      {notification.message}
+                    </Typography>
+                    <Typography 
+                      variant="caption" 
+                      color="text.secondary"
+                      sx={{
+                        display: 'block',
+                        mt: 0.5,
+                        fontSize: '0.65rem',
+                        fontStyle: 'italic'
+                      }}
+                    >
+                      {formatRelativeTime(notification.timestamp)}
+                    </Typography>
+                  </Box>
+                  
+                  {/* Delete button */}
+                  <IconButton 
+                    size="small" 
+                    onClick={(e) => handleDeleteNotification(e, notification.id)}
+                    sx={{ 
+                      position: 'absolute',
+                      top: 2,
+                      right: 2,
+                      opacity: 0.6,
+                      '&:hover': {
+                        opacity: 1,
+                        bgcolor: 'rgba(0,0,0,0.05)'
+                      }
+                    }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
                 </Box>
-              </Box>
-            ))
+              ))}
+            </Box>
           )}
         </Box>
       </Menu>
