@@ -140,20 +140,6 @@ const ChatList = () => {
         >
           Chat Messages
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleOpenNewChatDialog}
-          sx={{ 
-            backgroundColor: '#3498db',
-            '&:hover': { backgroundColor: '#2980b9' },
-            fontWeight: 500,
-            textTransform: 'none',
-            borderRadius: '8px'
-          }}
-        >
-          New Chat
-        </Button>
       </Box>
 
       <Grid container spacing={3}>

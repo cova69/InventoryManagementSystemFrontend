@@ -4,6 +4,12 @@ import authHeader from './AuthHeader';
 const API_URL = 'http://localhost:8080/api/chat';
 
 class ChatService {
+
+  // Add to ChatService.js
+  getAvailableUsers() {
+  return axios.get('http://localhost:8080/api/chat/users', { headers: authHeader() });
+}
+
   // Get all chats for current user
   getAllChats() {
     return axios.get(API_URL, { headers: authHeader() });

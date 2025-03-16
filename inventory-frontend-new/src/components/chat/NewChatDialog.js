@@ -20,6 +20,7 @@ import {
 } from '@mui/material';
 import { Search as SearchIcon, Close as CloseIcon } from '@mui/icons-material';
 import UserService from '../../services/UserService';
+import ChatService from '../../services/ChatService'
 
 const NewChatDialog = ({ open, onClose, onStartChat }) => {
   const [users, setUsers] = useState([]);
@@ -39,21 +40,20 @@ const NewChatDialog = ({ open, onClose, onStartChat }) => {
     }
   }, [searchTerm, users]);
 
-  const fetchUsers = async () => {
-    setLoading(true);
-    try {
-      // Using the admin users endpoint since it returns all users
-      // You might need to create a specific endpoint that returns only active users
-      const response = await UserService.getAllUsers();
-      setUsers(response.data || []);
-      setFilteredUsers(response.data || []);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+// In NewChatDialog.js, replace the fetchUsers function
+const fetchUsers = async () => {
+  setLoading(true);
+  try {
+    // Use the dedicated chat users endpoint instead of admin endpoint
+    const response = await ChatService.getAvailableUsers();
+    setUsers(response.data || []);
+    setFilteredUsers(response.data || []);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+  } finally {
+    setLoading(false);
+  }
+};
   const applySearchFilter = () => {
     if (!searchTerm.trim()) {
       setFilteredUsers(users);
