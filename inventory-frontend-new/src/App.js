@@ -20,6 +20,7 @@ import TransactionForm from './components/transactions/TransactionForm';
 import { AuthProvider } from './context/AuthContext';
 import ChatList from './components/chat/ChatList';
 import ChatDetail from './components/chat/ChatDetail';
+import InventoryAssistant from './components/chatbot/InventoryAssistant';
 import './App.css';
 
 function App() {
@@ -289,6 +290,10 @@ function App() {
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
+          
+          {/* Add the Inventory AI Assistant */}
+          <InventoryAssistant />
+          
         </div>
       </AuthProvider>
     </Router>
