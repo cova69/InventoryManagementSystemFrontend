@@ -18,6 +18,8 @@ import TransactionList from './components/transactions/TransactionList';
 import TransactionDetail from './components/transactions/TransactionDetail';
 import TransactionForm from './components/transactions/TransactionForm';
 import { AuthProvider } from './context/AuthContext';
+import ChatList from './components/chat/ChatList';
+import ChatDetail from './components/chat/ChatDetail';
 import './App.css';
 
 function App() {
@@ -37,7 +39,38 @@ function App() {
 } />
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
-            
+            {/* Chat routes */}
+<Route
+  path="/chat"
+  element={
+    <ProtectedRoute
+      element={
+        <>
+          <Navbar />
+          <Container style={{ marginTop: '20px' }}>
+            <ChatList />
+          </Container>
+        </>
+      }
+    />
+  }
+/>
+
+<Route
+  path="/chat/:chatId"
+  element={
+    <ProtectedRoute
+      element={
+        <>
+          <Navbar />
+          <Container style={{ marginTop: '20px' }}>
+            <ChatDetail />
+          </Container>
+        </>
+      }
+    />
+  }
+/>
             {/* Protected routes with layout */}
             <Route
               path="/"

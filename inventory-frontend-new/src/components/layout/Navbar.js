@@ -33,6 +33,8 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import PeopleIcon from '@mui/icons-material/People';
 import { AuthContext } from '../../context/AuthContext';
 import NotificationsSystem from '../../components/notifications/NotificationsSystem';
+import ChatNavIcon from '../../components/chat/ChatNavIcon';
+import ChatIcon from '@mui/icons-material/Chat'
 
 const Navbar = () => {
   const theme = useTheme();
@@ -74,6 +76,7 @@ const Navbar = () => {
     { text: 'Suppliers', icon: <LocalShippingIcon />, path: '/suppliers' },
     { text: 'Inventory', icon: <WarehouseIcon />, path: '/inventory' },
     { text: 'Transactions', icon: <ReceiptIcon />, path: '/transactions' },
+    { text: 'Chat', icon: <ChatIcon />, path: '/chat' },
   ];
   
   // Add Users management for admins
@@ -329,6 +332,9 @@ const Navbar = () => {
             {/* Notifications */}
             <NotificationsSystem buttonStyle={{ mx: 0.5 }} />
             
+            {/* Chat icon */}
+            <ChatNavIcon />
+
             {/* User profile */}
             <Box 
               sx={{ 
